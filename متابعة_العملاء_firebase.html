@@ -1,0 +1,2940 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="theme-color" content="#0a1628"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>متابعة العملاء</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0a1628;--bg2:#112240;--bg3:#1a2e4a;
+  --blue:#2563eb;--blue-l:#3b82f6;--blue-ll:#93c5fd;
+  --green:#10b981;--red:#ef4444;--gold:#f59e0b;--purple:#8b5cf6;
+  --text:#e8edf5;--muted:#6b8aaa;--muted2:#4a6080;
+  --card:rgba(255,255,255,0.05);--border:rgba(255,255,255,0.09)
+}
+html,body{height:100%;font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text)}
+#screen-checking{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:999}
+#screen-login{display:none;min-height:100dvh;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.login-box{background:var(--bg2);border:1px solid var(--border);border-radius:22px;padding:36px 28px 32px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.logo{text-align:center;margin-bottom:28px}
+.logo .ico{font-size:52px;display:block;margin-bottom:8px}
+.logo h1{font-size:20px;font-weight:900;color:#fff}
+.logo p{font-size:12px;color:var(--muted);margin-top:4px}
+.lfield{margin-bottom:14px}
+.lfield label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;font-weight:600}
+.lfield input{width:100%;background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:11px;color:var(--text);padding:12px 14px;font-family:inherit;font-size:14px;outline:none;transition:border .2s}
+.lfield input:focus{border-color:var(--blue-l)}
+.lfield input::placeholder{color:#4a6080}
+.login-btn{width:100%;background:linear-gradient(135deg,var(--blue),#1d4ed8);border:none;color:#fff;border-radius:12px;padding:13px;font-family:inherit;font-weight:700;font-size:16px;cursor:pointer;margin-top:6px;transition:transform .15s}
+.login-btn:active{transform:scale(.97)}
+.login-btn:disabled{opacity:.6;cursor:not-allowed}
+.lerr{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:10px;padding:10px 12px;font-size:13px;margin-top:12px;display:none;text-align:center}
+.lerr.show{display:block}
+#screen-app{display:none;flex-direction:column;height:100dvh;overflow:hidden}
+#nav{display:grid;grid-template-columns:repeat(5,1fr);background:rgba(0,0,0,.5);border-top:1px solid var(--border);flex-shrink:0}
+.ntab{padding:10px 2px 8px;text-align:center;font-size:10px;font-weight:700;color:var(--muted);cursor:pointer;border:none;background:none;font-family:inherit;transition:all .2s;border-top:2px solid transparent;display:flex;flex-direction:column;align-items:center;gap:2px}
+.ntab .icon{font-size:18px}
+.ntab.active{color:#fff;border-top-color:var(--blue-l);background:rgba(59,130,246,.08)}
+#pages{display:flex;flex-direction:column;flex:1;overflow:hidden}
+.page{display:none;flex-direction:column;flex:1;overflow:hidden}
+.page.active{display:flex}
+.page-scroll{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:12px}
+.page-scroll::-webkit-scrollbar{width:3px}
+.page-scroll::-webkit-scrollbar-thumb{background:#2d5a8e;border-radius:2px}
+.top-panel{flex-shrink:0;overflow:hidden;transition:max-height .3s ease,opacity .3s ease}
+.top-panel.collapsed{max-height:0!important;opacity:0;pointer-events:none}
+.top-panel.expanded{opacity:1}
+.panel-toggle{display:flex;align-items:center;justify-content:space-between;padding:5px 14px;background:rgba(0,0,0,.2);border-bottom:1px solid var(--border);cursor:pointer;flex-shrink:0}
+.panel-toggle .toggle-stats{display:flex;gap:10px;font-size:12px;font-weight:700}
+.panel-toggle .toggle-arrow{font-size:12px;color:var(--muted);transition:transform .3s}
+.panel-toggle .toggle-arrow.up{transform:rotate(180deg)}
+.topbar{background:rgba(0,0,0,.3);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.sub{font-size:10px;color:var(--muted);margin-top:1px}
+.user-bar{background:rgba(0,0,0,.2);border-bottom:1px solid var(--border);padding:6px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;font-size:11px}
+.uname{color:var(--muted);display:flex;align-items:center;gap:6px}
+.logout-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:3px 9px;font-family:inherit;font-size:11px;cursor:pointer}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;animation:pulse 2s infinite}
+.sync-dot.syncing{background:var(--gold);animation:pulse .5s infinite}
+.sync-dot.error{background:var(--red);animation:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.btn-primary{background:linear-gradient(135deg,var(--blue),#1d4ed8);border:none;color:#fff;border-radius:10px;padding:8px 14px;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer}
+.btn-gold{background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(245,158,11,.08));border:1px solid rgba(245,158,11,.35);color:var(--gold);border-radius:10px;padding:9px 14px;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;width:100%}
+.btn-green{background:linear-gradient(135deg,rgba(16,185,129,.2),rgba(16,185,129,.1));border:1px solid rgba(16,185,129,.35);color:#34d399;border-radius:10px;padding:9px 14px;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;width:100%}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 4px;text-align:center}
+.stat .num{font-size:15px;font-weight:900;line-height:1}
+.stat .lbl{font-size:10px;color:var(--muted);margin-top:3px}
+.prog-label{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px}
+.prog-bg{height:6px;background:rgba(255,255,255,.09);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.filters{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.filters::-webkit-scrollbar{display:none}
+.fbtn{background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);border-radius:20px;padding:4px 12px;font-family:inherit;font-size:11px;cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0}
+.fbtn.active{background:var(--blue);border-color:var(--blue);color:#fff}
+/* CUSTOMER CARD */
+.ccard{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:10px 11px;display:flex;align-items:center;gap:11px;animation:slideIn .2s ease;transition:opacity .3s}
+.ccard.done{opacity:.4}
+@keyframes slideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.status-btn{width:36px;height:36px;border-radius:50%;border:none;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.status-btn:active{transform:scale(.88)}
+.cinfo{flex:1;min-width:0;cursor:pointer}
+.cname{font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ccard.done .cname{text-decoration:line-through;color:var(--muted)}
+.cmeta{display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap}
+.cmeta span{font-size:10px;color:var(--muted)}
+.badge{border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700}
+.badge.phone{background:rgba(59,130,246,.18);color:#60a5fa;border:1px solid rgba(59,130,246,.28)}
+.badge.whats{background:rgba(16,185,129,.18);color:#34d399;border:1px solid rgba(16,185,129,.28)}
+.note-preview{font-size:10px;color:#a78bfa;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-actions{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
+.ic-btn{width:28px;height:28px;border-radius:8px;border:1px solid var(--border);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;background:rgba(255,255,255,.05);color:var(--muted)}
+.ic-btn:active{transform:scale(.88)}
+.ic-btn.purple{border-color:rgba(139,92,246,.3);color:#a78bfa}
+.ic-btn.red{border-color:rgba(239,68,68,.25);color:#f87171}
+.ic-btn.green{border-color:rgba(16,185,129,.3);color:#34d399}
+/* STATUS COLORS */
+.s-bought .status-btn{background:linear-gradient(135deg,#10b981,#059669);color:#fff;box-shadow:0 2px 8px rgba(16,185,129,.3)}
+.s-interested .status-btn{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;box-shadow:0 2px 8px rgba(245,158,11,.3)}
+.s-rejected .status-btn{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;box-shadow:0 2px 8px rgba(239,68,68,.3)}
+.s-noans .status-btn{background:rgba(255,255,255,.07);color:var(--muted);border:1px solid var(--border)}
+.s-none .status-btn{background:rgba(255,255,255,.07);color:var(--muted);border:1px solid var(--border)}
+/* CATS */
+.cat-A{border-right:4px solid #f59e0b!important;background:rgba(245,158,11,.08)!important}
+.cat-A .cname{color:#fbbf24!important}
+.cat-B{border-right:4px solid #3b82f6!important;background:rgba(59,130,246,.05)!important}
+.cat-B .cname{color:#93c5fd!important}
+.cat-C{border-right:4px solid #6b7280!important;background:rgba(107,114,128,.04)!important;opacity:.7}
+.cat-C .cname{color:#9ca3af!important}
+.badge-cat{border-radius:6px;padding:2px 9px;font-size:11px;font-weight:900}
+.badge-cat.A{background:rgba(245,158,11,.25);color:#fbbf24;border:1px solid rgba(245,158,11,.5)}
+.badge-cat.B{background:rgba(59,130,246,.2);color:#60a5fa;border:1px solid rgba(59,130,246,.4)}
+.badge-cat.C{background:rgba(107,114,128,.15);color:#9ca3af;border:1px solid rgba(107,114,128,.3)}
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty .ico{font-size:42px;margin-bottom:10px}
+/* OVERLAY / SHEET */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg3);border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:18px 16px 28px;border:1px solid var(--border);animation:sheetUp .25s ease;max-height:92vh;overflow-y:auto}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheet h2{font-size:15px;font-weight:800;color:var(--blue-ll);margin-bottom:14px}
+.field{margin-bottom:11px}
+.field label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px 13px;font-family:inherit;font-size:14px;outline:none;transition:border .2s;resize:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue-l)}
+.field input::placeholder,.field textarea::placeholder{color:var(--muted2)}
+.field select option{background:var(--bg3)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.submit-btn{width:100%;background:linear-gradient(135deg,var(--blue),#1d4ed8);border:none;color:#fff;border-radius:11px;padding:12px;font-family:inherit;font-weight:700;font-size:15px;cursor:pointer;margin-top:4px}
+.cancel-btn{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);border-radius:11px;padding:10px;font-family:inherit;font-weight:600;font-size:14px;cursor:pointer;margin-top:6px}
+/* STATUS PICKER */
+.status-picker{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.sp-btn{border:2px solid transparent;border-radius:12px;padding:10px 8px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;text-align:center;transition:all .2s;background:rgba(255,255,255,.05);color:var(--muted)}
+.sp-btn.active{color:#fff}
+.sp-btn.sp-bought{border-color:#10b981;background:rgba(16,185,129,.15);color:#34d399}
+.sp-btn.sp-bought.active{background:#10b981;color:#fff}
+.sp-btn.sp-interested{border-color:#f59e0b;background:rgba(245,158,11,.12);color:#fbbf24}
+.sp-btn.sp-interested.active{background:#f59e0b;color:#fff}
+.sp-btn.sp-rejected{border-color:#ef4444;background:rgba(239,68,68,.1);color:#f87171}
+.sp-btn.sp-rejected.active{background:#ef4444;color:#fff}
+.sp-btn.sp-noans{border-color:#6b7280;background:rgba(107,114,128,.1);color:#9ca3af}
+.sp-btn.sp-noans.active{background:#6b7280;color:#fff}
+/* CONFIRM */
+.conf-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:298}
+.conf-box{background:var(--bg3);border-radius:18px;width:calc(100% - 36px);max-width:300px;padding:24px 18px;text-align:center;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:299;animation:popIn .2s ease;border:1px solid var(--border)}
+@keyframes popIn{from{opacity:0;transform:translate(-50%,-60%)}to{opacity:1;transform:translate(-50%,-50%)}}
+.conf-box .ico{font-size:36px;margin-bottom:8px}
+.conf-box h3{font-size:15px;font-weight:700;margin-bottom:5px}
+.conf-box p{font-size:12px;color:var(--muted);margin-bottom:18px;line-height:1.6}
+.conf-btns{display:flex;gap:8px}
+.conf-cancel{flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);border-radius:9px;padding:10px;font-family:inherit;font-weight:600;cursor:pointer;font-size:13px}
+.conf-ok{flex:1;border:none;color:#fff;border-radius:9px;padding:10px;font-family:inherit;font-weight:700;cursor:pointer;font-size:13px}
+.conf-ok.red{background:linear-gradient(135deg,#dc2626,#b91c1c)}
+.conf-ok.gold{background:linear-gradient(135deg,#d97706,#b45309)}
+/* ANALYTICS */
+.section-title{font-size:13px;font-weight:800;color:var(--blue-ll);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.chart-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px}
+.chart-wrap canvas{max-height:200px}
+.rank-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.rank-item:last-child{border-bottom:none}
+.rank-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0}
+.rank-bar-wrap{flex:1}
+.rank-name{font-size:13px;font-weight:700;margin-bottom:3px}
+.rank-bar-bg{height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
+.rank-bar-fill{height:100%;border-radius:3px;transition:width .8s ease}
+.rank-count{font-size:12px;font-weight:700;flex-shrink:0}
+/* ALERTS */
+.alert-card{background:var(--card);border-radius:14px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;animation:slideIn .2s ease}
+.alert-card.warn{border:1px solid rgba(245,158,11,.3)}
+.alert-card.danger{border:1px solid rgba(239,68,68,.3)}
+.alert-card.ok{border:1px solid rgba(16,185,129,.3)}
+.alert-icon{font-size:22px;flex-shrink:0;margin-top:1px}
+.alert-body{flex:1}
+.alert-name{font-size:14px;font-weight:700;margin-bottom:2px}
+.alert-msg{font-size:12px;color:var(--muted);line-height:1.5}
+/* HISTORY */
+.hist-day{background:var(--card);border:1px solid var(--border);border-radius:14px}
+.hist-body{padding:0 13px 10px}
+.hist-body.hidden{display:none}
+.hist-hdr-inner{padding:12px 13px}
+.hist-hdr{display:flex;justify-content:space-between;align-items:center;padding:12px 13px;cursor:pointer}
+.hist-date{font-size:13px;font-weight:800;color:var(--blue-ll)}
+.hist-badge{background:rgba(16,185,129,.13);color:#34d399;border:1px solid rgba(16,185,129,.22);border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700}
+.hist-item{display:flex;align-items:flex-start;gap:7px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.hist-item:last-child{border-bottom:none}
+.hist-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.hist-dot.bought{background:#10b981}
+.hist-dot.interested{background:#f59e0b}
+.hist-dot.rejected{background:#ef4444}
+.hist-dot.noans{background:#6b7280}
+.hist-dot.none{background:#374151}
+.hist-name{font-size:12px;flex:1;line-height:1.5}
+.hist-note{font-size:10px;color:#a78bfa}
+/* PROFILE */
+.prof-stat{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:10px;text-align:center;flex:1}
+.prof-stat .pnum{font-size:18px;font-weight:900}
+.prof-stat .plbl{font-size:10px;color:var(--muted);margin-top:2px}
+.day-chip{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px;font-size:11px;font-weight:700;margin:3px}
+.day-chip.hot{background:rgba(16,185,129,.2);color:#34d399;border:1px solid rgba(16,185,129,.3)}
+.day-chip.cold{background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+.day-chip.neutral{background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--border)}
+/* DAY NOTE */
+.day-note-bar{background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.2);border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;flex-shrink:0;margin:0 12px 6px}
+.day-note-bar span{font-size:11px;color:#a78bfa;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* COVERAGE */
+.cov-bar{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;margin:0 12px 6px}
+.cov-bar-info{font-size:12px;font-weight:700;color:#fbbf24;flex:1}
+.cov-badge{display:inline-block;background:rgba(245,158,11,.2);border:1px solid rgba(245,158,11,.4);color:#fbbf24;border-radius:10px;padding:1px 7px;font-size:9px;font-weight:900;margin-left:4px}
+.cov-end-btn{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:8px;padding:4px 10px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer}
+/* SEARCH */
+.search-wrap{padding:6px 12px;flex-shrink:0}
+.search-input{width:100%;background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:9px 12px 9px 36px;font-family:inherit;font-size:13px;outline:none}
+.search-input::placeholder{color:var(--muted2)}
+.search-wrap-inner{position:relative}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
+/* REMINDER BADGE */
+.reminder-badge{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700;animation:pulse .8s infinite}
+.spin{width:40px;height:40px;border:3px solid rgba(255,255,255,.1);border-top-color:var(--blue-l);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- CHECKING -->
+<div id="screen-checking">
+  <div style="font-size:48px">📋</div>
+  <div class="spin"></div>
+  <p style="font-size:13px;color:var(--muted)">جاري التحقق...</p>
+</div>
+
+<!-- LOGIN -->
+<div id="screen-login">
+  <div class="login-box">
+    <div class="logo"><span class="ico">📋</span><h1>متابعة العملاء</h1><p>سجّل دخولك للمتابعة</p></div>
+    <div class="lfield"><label>اسم المستخدم</label><input type="text" id="username" placeholder="مثال: ahmed" autocomplete="username"/></div>
+    <div class="lfield"><label>كلمة السر</label><input type="password" id="password" placeholder="••••••••" autocomplete="current-password"/></div>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">دخول</button>
+    <div class="lerr" id="errMsg"></div>
+    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--muted)">متابعة العملاء اليومي © 2025</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="screen-app">
+  <div class="user-bar">
+    <div class="uname"><span class="sync-dot" id="sync-dot"></span><span id="user-email"></span></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span id="reminder-badge" class="reminder-badge" style="display:none">🔔 <span id="reminder-count">0</span></span>
+      <button class="logout-btn" onclick="doLogout()">خروج</button>
+    </div>
+  </div>
+
+  <div id="pages">
+
+    <!-- TODAY -->
+    <div id="page-today" class="page active">
+      <div class="topbar">
+        <div><div style="font-size:15px;font-weight:900;color:#fff">متابعة العملاء</div><div class="sub" id="today-date"></div></div>
+        <button class="btn-primary" onclick="openAdd()">+ عميل</button>
+      </div>
+      <!-- SEARCH — دايما ظاهرة -->
+      <div class="search-wrap">
+        <div class="search-wrap-inner">
+          <span class="search-icon">🔍</span>
+          <input class="search-input" id="search-input" placeholder="ابحث عن عميل..." oninput="render()"/>
+        </div>
+      </div>
+      <!-- TOGGLE BAR -->
+      <div class="panel-toggle" onclick="togglePanel()">
+        <div class="toggle-stats">
+          <span id="tg-total" style="color:#60a5fa">0 إجمالي</span>
+          <span id="tg-bought" style="color:#34d399">0 اشترى</span>
+          <span id="tg-pct" style="color:#fbbf24">0%</span>
+          <span id="tg-sales" style="color:#a78bfa"></span>
+        </div>
+        <span class="toggle-arrow" id="toggle-arrow">▲</span>
+      </div>
+      <!-- COLLAPSIBLE PANEL -->
+      <div class="top-panel expanded" id="top-panel">
+      <!-- DAY NOTE BAR -->
+      <div class="day-note-bar" onclick="openDayNote()">
+        <span>📓</span>
+        <span id="day-note-preview">ملاحظة الشيفت... اضغط للكتابة</span>
+        <span style="font-size:12px;color:var(--muted)">✏️</span>
+      </div>
+      <!-- STATS -->
+      <div style="padding:0 12px;flex-shrink:0">
+        <div class="stats-grid">
+          <div class="stat"><div class="num" id="s-total" style="color:#60a5fa">0</div><div class="lbl">إجمالي</div></div>
+          <div class="stat"><div class="num" id="s-bought" style="color:#34d399">0</div><div class="lbl">اشترى</div></div>
+          <div class="stat"><div class="num" id="s-interested" style="color:#fbbf24">0</div><div class="lbl">مهتم</div></div>
+          <div class="stat"><div class="num" id="s-sales" style="color:#a78bfa">0</div><div class="lbl">المبيعات</div></div>
+        </div>
+        <div style="margin:8px 0">
+          <div class="prog-label"><span>نسبة الإنجاز</span><span id="prog-pct" style="color:var(--green);font-weight:700">0%</span></div>
+          <div class="prog-bg"><div id="prog-fill" class="prog-fill" style="background:linear-gradient(90deg,var(--blue-l),var(--green));width:0%"></div></div>
+        </div>
+        <div class="filters" style="margin-bottom:6px">
+          <button class="fbtn active" data-f="الكل"     onclick="setFilter(this)">الكل</button>
+          <button class="fbtn"        data-f="اشترى"   onclick="setFilter(this)">🟢 اشترى</button>
+          <button class="fbtn"        data-f="مهتم"    onclick="setFilter(this)">🟡 مهتم</button>
+          <button class="fbtn"        data-f="رفض"     onclick="setFilter(this)">🔴 رفض</button>
+          <button class="fbtn"        data-f="مش رد"   onclick="setFilter(this)">⏸ مش رد</button>
+          <button class="fbtn"        data-f="لم يتم"  onclick="setFilter(this)">⏳ لم يتم</button>
+          <button class="fbtn"        data-f="فون"     onclick="setFilter(this)">📞 فون</button>
+          <button class="fbtn"        data-f="واتس"    onclick="setFilter(this)">💬 واتس</button>
+          <button class="fbtn"        data-f="A"       onclick="setFilter(this)" style="color:#fbbf24">★ A</button>
+          <button class="fbtn"        data-f="B"       onclick="setFilter(this)" style="color:#60a5fa">★ B</button>
+          <button class="fbtn"        data-f="C"       onclick="setFilter(this)" style="color:#9ca3af">★ C</button>
+        </div>
+        <!-- شريط التغطية النشطة -->
+        <div id="cov-bar" style="display:none" class="cov-bar">
+          <span>🔄</span>
+          <span class="cov-bar-info" id="cov-bar-info">تغطية</span>
+          <button class="cov-end-btn" onclick="openAddClientDuringCoverage()" style="background:rgba(16,185,129,.2);border-color:rgba(16,185,129,.4);color:#34d399">➕ عميل</button>
+          <button class="cov-end-btn" onclick="endCoverage()">✖ إنهاء</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+          <button class="btn-gold" onclick="askReset()">🔄 تصفير اليوم</button>
+          <button class="btn-green" onclick="exportWeeklyExcel()">📊 تقرير أسبوعي</button>
+          <button class="btn-primary" onclick="askClosePeriod('week')" style="background:linear-gradient(135deg,#7c3aed,#5b21b6)">📅 إغلاق الأسبوع</button>
+          <button class="btn-primary" onclick="askClosePeriod('month')" style="background:linear-gradient(135deg,#0891b2,#0e7490)">🗓️ إغلاق الشهر</button>
+          <button class="btn-primary" onclick="openCoverageModal()" style="grid-column:1/-1;background:linear-gradient(135deg,#d97706,#b45309)" id="cov-main-btn">🔄 يوم تغطية</button>
+        </div>
+      </div>
+      </div><!-- /top-panel -->
+      <div id="list" class="page-scroll" style="padding-top:4px"></div>
+    </div>
+
+    <!-- HISTORY -->
+    <div id="page-history" class="page">
+      <div class="topbar"><div><div style="font-size:15px;font-weight:900;color:#fff">📅 سجل الأيام</div><div class="sub" id="hist-sub">آخر 60 يوم</div></div><button class="btn-primary" onclick="openAddPastDay()">+ يوم قديم</button></div>
+      <!-- بحث في السجل -->
+      <div class="search-wrap" style="flex-shrink:0">
+        <div class="search-wrap-inner">
+          <span class="search-icon">🔍</span>
+          <input class="search-input" id="hist-search" placeholder="ابحث باسم عميل..." oninput="renderHistory()"/>
+        </div>
+      </div>
+      <!-- فلاتر السجل -->
+      <div style="flex-shrink:0;padding:0 12px 8px;display:flex;gap:6px;overflow-x:auto">
+        <button class="fbtn active" data-hf="الكل" onclick="setHistFilter(this)">الكل</button>
+        <button class="fbtn" data-hf="week" onclick="setHistFilter(this)">هذا الأسبوع</button>
+        <button class="fbtn" data-hf="last_week" onclick="setHistFilter(this)">الأسبوع السابق</button>
+        <button class="fbtn" data-hf="month" onclick="setHistFilter(this)">هذا الشهر</button>
+        <button class="fbtn" data-hf="last_month" onclick="setHistFilter(this)">الشهر السابق</button>
+      </div>
+      <div id="hist-list" class="page-scroll"></div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div id="page-analytics" class="page">
+      <div class="topbar"><div><div style="font-size:15px;font-weight:900;color:#fff">📊 التحليل</div><div class="sub" id="analytics-period"></div></div></div>
+      <div style="display:flex;gap:6px;padding:8px 12px 0;flex-shrink:0">
+        <button id="tab-general" onclick="switchAnalyticsTab('general')" style="flex:1;padding:8px;border-radius:10px;border:1px solid var(--blue);background:var(--blue);color:#fff;font-family:'Cairo',sans-serif;font-weight:700;font-size:13px;cursor:pointer">📈 عام</button>
+        <button id="tab-monthly" onclick="switchAnalyticsTab('monthly')" style="flex:1;padding:8px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Cairo',sans-serif;font-weight:700;font-size:13px;cursor:pointer">📅 شهري</button>
+        <button id="tab-client" onclick="switchAnalyticsTab('client')" style="flex:1;padding:8px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Cairo',sans-serif;font-weight:700;font-size:13px;cursor:pointer">🔍 عميل</button>
+        <button id="tab-coverage" onclick="switchAnalyticsTab('coverage')" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(245,158,11,.4);background:transparent;color:#fbbf24;font-family:'Cairo',sans-serif;font-weight:700;font-size:13px;cursor:pointer">🔄 تغطية</button>
+      </div>
+      <div id="analytics-content" class="page-scroll"></div>
+      <div id="monthly-content" class="page-scroll" style="display:none"></div>
+      <div id="client-content" class="page-scroll" style="display:none"></div>
+      <div id="coverage-content" class="page-scroll" style="display:none"></div>
+    </div>
+
+    <!-- CATS -->
+    <div id="page-cats" class="page">
+      <div class="topbar"><div><div style="font-size:15px;font-weight:900;color:#fff">🏷️ حسب الفئة</div></div></div>
+      <div id="cats-content" class="page-scroll"></div>
+    </div>
+
+    <!-- ALERTS -->
+    <div id="page-alerts" class="page">
+      <div class="topbar"><div><div style="font-size:15px;font-weight:900;color:#fff">🔔 تنبيهات</div></div></div>
+      <div id="alerts-content" class="page-scroll"></div>
+    </div>
+
+  </div>
+
+  <div id="nav">
+    <button class="ntab active" data-page="today"     onclick="showPage('today')">    <span class="icon">📋</span>اليوم</button>
+    <button class="ntab"        data-page="history"   onclick="showPage('history')">  <span class="icon">📅</span>السجل</button>
+    <button class="ntab"        data-page="analytics" onclick="showPage('analytics')"><span class="icon">📊</span>التحليل</button>
+    <button class="ntab"        data-page="cats"      onclick="showPage('cats')">     <span class="icon">🏷️</span>الفئات</button>
+    <button class="ntab"        data-page="alerts"    onclick="showPage('alerts')">   <span class="icon">🔔</span>تنبيهات</button>
+  </div>
+</div>
+
+<!-- ADD/EDIT SHEET -->
+<div class="overlay" id="add-modal" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <h2 id="form-title">➕ إضافة عميل جديد</h2>
+    <div class="field"><label>اسم العميل *</label><input id="f-name" placeholder="مثال: أحمد محمد"/></div>
+    <div class="field"><label>رقم الموبيل</label><input id="f-phone" type="tel" placeholder="01xxxxxxxxx"/></div>
+    <div class="row2">
+      <div class="field"><label>ساعة التواصل</label><select id="f-time"></select></div>
+      <div class="field"><label>طريقة التواصل</label><select id="f-type"><option>فون</option><option>واتس</option></select></div>
+    </div>
+    <div class="field"><label>الفئة</label>
+      <select id="f-cat">
+        <option value="A">⭐ فئة A — أولوية قصوى</option>
+        <option value="B">🔵 فئة B — عادي</option>
+        <option value="C">⚪ فئة C — أقل أولوية</option>
+      </select>
+    </div>
+    <div class="field"><label>ملاحظة ثابتة</label><textarea id="f-note" rows="2" placeholder="أي تفاصيل ثابتة..."></textarea></div>
+    <button class="submit-btn" onclick="saveCustomer()">✔ حفظ</button>
+    <button class="cancel-btn" onclick="document.getElementById('add-modal').style.display='none'">إلغاء</button>
+  </div>
+</div>
+
+<!-- STATUS SHEET -->
+<div class="overlay" id="status-modal" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <h2>📊 تحديث حالة العميل</h2>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:14px" id="status-client-name"></div>
+    <div class="status-picker">
+      <button class="sp-btn sp-bought"     onclick="pickStatus('bought')"    id="sp-bought">🟢 اشترى</button>
+      <button class="sp-btn sp-interested" onclick="pickStatus('interested')" id="sp-interested">🟡 مهتم / هيرد</button>
+      <button class="sp-btn sp-rejected"   onclick="pickStatus('rejected')"  id="sp-rejected">🔴 رفض</button>
+      <button class="sp-btn sp-noans"      onclick="pickStatus('noans')"     id="sp-noans">⏸ مش رد</button>
+    </div>
+    <!-- قيمة الطلب — تظهر بس لو اشترى -->
+    <div id="sale-amount-wrap" style="display:none">
+      <div class="field">
+        <label>💰 قيمة الطلب (جنيه)</label>
+        <input id="sale-amount" type="number" placeholder="مثال: 250" min="0"/>
+      </div>
+    </div>
+    <div class="field"><label>📝 ملاحظة اليوم</label><textarea id="status-note" rows="3" placeholder="مثلاً: طلب عرض سعر، سيرد غداً..."></textarea></div>
+    <button class="submit-btn" onclick="saveStatus()">✔ حفظ الحالة</button>
+    <button class="cancel-btn" onclick="document.getElementById('status-modal').style.display='none'">إلغاء</button>
+  </div>
+</div>
+
+<!-- DAY NOTE SHEET -->
+<div class="overlay" id="daynote-modal" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <h2>📓 ملاحظة الشيفت</h2>
+    <div class="field"><textarea id="dn-text" rows="5" placeholder="ملاحظات عامة على الشيفت، أحداث مهمة, ..."></textarea></div>
+    <button class="submit-btn" onclick="saveDayNote()">✔ حفظ</button>
+    <button class="cancel-btn" onclick="document.getElementById('daynote-modal').style.display='none'">إلغاء</button>
+  </div>
+</div>
+
+<!-- PROFILE SHEET -->
+<div class="overlay" id="profile-modal" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="sheet" onclick="event.stopPropagation()" id="profile-content"></div>
+</div>
+
+<!-- CONFIRM -->
+<div class="conf-overlay" id="conf-overlay" style="display:none" onclick="closeConfirm()"></div>
+<div class="conf-box" id="conf-box" style="display:none">
+  <div class="ico" id="conf-ico"></div>
+  <h3 id="conf-title"></h3>
+  <p id="conf-msg"></p>
+  <div class="conf-btns">
+    <button class="conf-cancel" onclick="closeConfirm()">إلغاء</button>
+    <button class="conf-ok" id="conf-ok" onclick="doConfirm()">تأكيد</button>
+  </div>
+</div>
+
+<!-- COVERAGE MODAL — اختيار الزميل -->
+<div class="overlay" id="cov-modal" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <h2>🔄 يوم تغطية</h2>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:16px">اختار الزميل اللى هتغطيه — عملاءه هيظهروا تلقائى من ملفه المحفوظ.</p>
+    <div class="field">
+      <label>اسم الزميل</label>
+      <input id="cov-colleague-input" placeholder="مثال: أحمد" oninput="renderColleagueList()"/>
+    </div>
+    <div id="colleague-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px"></div>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:10px">⬆️ اختار من القائمة أو اكتب اسم جديد</p>
+    <button class="submit-btn" style="background:linear-gradient(135deg,#d97706,#b45309)" onclick="startCoverage()">✔ ابدأ التغطية</button>
+    <button class="cancel-btn" onclick="document.getElementById('cov-modal').style.display='none'">إلغاء</button>
+  </div>
+</div>
+
+<!-- COVERAGE CLIENTS MANAGER — إدارة عملاء زميل -->
+<div class="overlay" id="cov-manage-modal" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <h2 id="cov-manage-title">👥 عملاء الزميل</h2>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:12px">هذه القائمة محفوظة — بتظهر تلقائى كل مرة تغطي الزميل ده.</p>
+    <div id="cov-manage-list" style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;margin-bottom:12px"></div>
+    <button class="btn-primary" onclick="openAddColleagueClient()" style="margin-bottom:8px;width:100%">➕ إضافة عميل</button>
+    <button class="cancel-btn" onclick="document.getElementById('cov-manage-modal').style.display='none'">إغلاق</button>
+  </div>
+</div>
+
+<!-- ADD CLIENT TO COLLEAGUE -->
+<div class="overlay" id="cov-add-client-modal" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <h2 id="cov-add-client-title">➕ إضافة عميل للزميل</h2>
+    <div class="field"><label>اسم الصيدلية *</label><input id="cov-cl-name" placeholder="مثال: صيدلية النور"/></div>
+    <div class="field"><label>رقم الموبيل</label><input id="cov-cl-phone" type="tel" placeholder="01xxxxxxxxx"/></div>
+    <div class="row2">
+      <div class="field"><label>ساعة التواصل</label><select id="cov-cl-time"></select></div>
+      <div class="field"><label>طريقة التواصل</label><select id="cov-cl-type"><option>فون</option><option>واتس</option></select></div>
+    </div>
+    <div class="field"><label>الفئة</label>
+      <select id="cov-cl-cat">
+        <option value="A">⭐ فئة A</option>
+        <option value="B" selected>🔵 فئة B</option>
+        <option value="C">⚪ فئة C</option>
+      </select>
+    </div>
+    <button class="submit-btn" style="background:linear-gradient(135deg,#d97706,#b45309)" onclick="saveColleagueClient()">✔ حفظ</button>
+    <button class="cancel-btn" onclick="document.getElementById('cov-add-client-modal').style.display='none'">إلغاء</button>
+  </div>
+</div>
+
+<!-- STATUS SHEET للتغطية -->
+<div class="overlay" id="cov-status-modal" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <h2>📊 حالة عميل التغطية</h2>
+    <div style="font-size:13px;color:#fbbf24;margin-bottom:14px" id="cov-status-name"></div>
+    <div class="status-picker">
+      <button class="sp-btn sp-bought"     onclick="pickCovStatus('bought')"     id="csp-bought">🟢 اشترى</button>
+      <button class="sp-btn sp-interested" onclick="pickCovStatus('interested')" id="csp-interested">🟡 مهتم</button>
+      <button class="sp-btn sp-rejected"   onclick="pickCovStatus('rejected')"   id="csp-rejected">🔴 رفض</button>
+      <button class="sp-btn sp-noans"      onclick="pickCovStatus('noans')"      id="csp-noans">⏸ مش رد</button>
+    </div>
+    <div id="cov-sale-wrap" style="display:none">
+      <div class="field"><label>💰 قيمة الطلب (جنيه)</label><input id="cov-sale-amt" type="number" placeholder="مثال: 250" min="0"/></div>
+    </div>
+    <div class="field"><label>📝 ملاحظة</label><textarea id="cov-status-note" rows="2" placeholder="ملاحظة على المكالمة..."></textarea></div>
+    <button class="submit-btn" style="background:linear-gradient(135deg,#d97706,#b45309)" onclick="saveCovStatus()">✔ حفظ</button>
+    <button class="cancel-btn" onclick="document.getElementById('cov-status-modal').style.display='none'">إلغاء</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyB3qJwYn7Ieaj9Q3FfeVmivbVZ3IrX5B6A",
+  authDomain: "workkk-e1161.firebaseapp.com",
+  projectId: "workkk-e1161",
+  storageBucket: "workkk-e1161.firebasestorage.app",
+  messagingSenderId: "12086473513",
+  appId: "1:12086473513:web:236cdefb8d327af410bd3a",
+  measurementId: "G-CFJZYGJJJ2"
+};
+// ══════════════════════════════════════
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const fsdb = firebase.firestore();
+
+// STATE
+let customers=[],todayData={},historyData=[],periodsData=[],coverageHistory=[];
+let activeFilter='الكل',pendingAction=null,editingId=null,statusingId=null;
+let charts={},UID=null;
+const DAYS_AR=['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+const DAYS_SHORT=['أحد','إث','ثلا','أرب','خمس','جمع','سبت'];
+
+// ══ COVERAGE STATE ══
+// colleagues: { "أحمد": [{id,name,phone,time,type,cat},...], "محمد": [...] }
+// covToday:   { active:bool, colleague:'أحمد', statuses:{id:status}, amounts:{id:n}, notes:{id:s} }
+let colleagues={};
+let covToday={active:false,colleague:'',statuses:{},amounts:{},notes:{}};
+let covStatusingId=null, covPickedStatus='bought';
+const COV_COLLEAGUES_KEY=()=>'cov_colleagues_'+UID;
+const COV_TODAY_KEY=()=>'cov_today_'+UID+'_'+dateStr();
+
+// STATUS CONFIG
+const STATUS_CFG={
+  bought:    {label:'اشترى',   icon:'🟢', cls:'s-bought',    btnIcon:'✓',  dotCls:'bought'},
+  interested:{label:'مهتم',    icon:'🟡', cls:'s-interested',btnIcon:'★',  dotCls:'interested'},
+  rejected:  {label:'رفض',     icon:'🔴', cls:'s-rejected',  btnIcon:'✗',  dotCls:'rejected'},
+  noans:     {label:'مش رد',   icon:'⏸', cls:'s-noans',     btnIcon:'⏸', dotCls:'noans'},
+  none:      {label:'لم يتم',  icon:'○',  cls:'s-none',      btnIcon:'○',  dotCls:'none'},
+};
+
+// HELPERS
+function dateStr(d){
+  if(!d){
+    d=new Date();
+    // الشيفت من 8م لـ 5ص — لو الوقت بين 12ص و5ص يعتبره نفس يوم الشيفت (أمس)
+    if(d.getHours()<5){d=new Date(d);d.setDate(d.getDate()-1);}
+  }
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function pad(n){return String(n).padStart(2,'0');}
+function dateAr(s){return new Date(s+'T00:00:00').toLocaleDateString('ar-EG',{weekday:'long',year:'numeric',month:'long',day:'numeric'});}
+function dayOfWeek(s){return new Date(s+'T00:00:00').getDay();}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+function setSyncState(s){const d=document.getElementById('sync-dot');if(!d)return;d.className='sync-dot'+(s==='syncing'?' syncing':s==='error'?' error':'');}
+function getStatus(id){return (todayData.status||{})[id]||'none';}
+function isDone(id){return ['bought','interested','rejected','noans'].includes(getStatus(id));}
+
+// SCREENS
+function showScreen(n){
+  document.getElementById('screen-checking').style.display=n==='checking'?'flex':'none';
+  document.getElementById('screen-login').style.display=n==='login'?'flex':'none';
+  document.getElementById('screen-app').style.display=n==='app'?'flex':'none';
+}
+
+// AUTH
+auth.onAuthStateChanged(async (user) => {
+  if (user) { UID = user.uid; await bootApp(user); }
+  else showScreen('login');
+});
+
+async function doLogin(){
+  const username=document.getElementById('username').value.trim();
+  const pass=document.getElementById('password').value;
+  const btn=document.getElementById('loginBtn');
+  if(!username||!pass){showErr('اكتب اسم المستخدم وكلمة السر!');return;}
+  btn.disabled=true;btn.textContent='جاري الدخول...';
+  document.getElementById('errMsg').classList.remove('show');
+  const email=username.includes('@')?username:username+'@customers.app';
+  try{
+    const {user}=await auth.signInWithEmailAndPassword(email,pass);
+    UID=user.uid;
+    await bootApp(user);
+  }catch(e){
+    btn.disabled=false;btn.textContent='دخول';
+    const msg=e.code==='auth/invalid-credential'||e.code==='auth/wrong-password'||e.code==='auth/user-not-found'?'اسم المستخدم أو كلمة السر غلط!':e.message;
+    showErr(msg);
+  }
+}
+function showErr(msg){const el=document.getElementById('errMsg');el.textContent=msg;el.classList.add('show');}
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('screen-login').style.display==='flex')doLogin();});
+async function doLogout(){
+  try{await auth.signOut();}catch(e){}
+  UID=null;customers=[];todayData={};historyData=[];
+  showScreen('login');
+  document.getElementById('username').value='';
+  document.getElementById('password').value='';
+  document.getElementById('errMsg').classList.remove('show');
+}
+
+// BOOT
+async function bootApp(user){
+  showScreen('checking');
+  try{
+    document.getElementById('user-email').textContent=user.email.replace(/@customers\.app$/,'');
+    await loadAll();
+    showScreen('app');
+    const shiftDate=new Date();
+    if(shiftDate.getHours()<5)shiftDate.setDate(shiftDate.getDate()-1);
+    document.getElementById('today-date').textContent='شيفت: '+shiftDate.toLocaleDateString('ar-EG',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    render();
+    updateDayNote();
+    checkReminders();
+    loadCoverage();
+    setInterval(doAutoSave,5*60*1000);
+    setInterval(checkReminders,60*1000);
+    startRealtimeSync();
+  }catch(e){
+    console.error(e);
+    document.getElementById('screen-checking').innerHTML=`<div style="text-align:center;padding:20px"><div style="font-size:36px;margin-bottom:12px">⚠️</div><p style="color:#f87171;margin-bottom:16px">خطأ في الاتصال</p><button onclick="location.reload()" style="background:#2563eb;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-family:Cairo,sans-serif;font-size:14px;cursor:pointer">إعادة المحاولة</button></div>`;
+  }
+}
+
+// DATA — Firebase Firestore
+async function loadAll(){
+  setSyncState('syncing');
+  try{
+    // customers
+    const cSnap = await fsdb.collection('customers').where('user_id','==',UID).orderBy('created_at').get();
+    customers = cSnap.docs.map(d=>({id:d.id,...d.data()}));
+
+    // today_data
+    const today=dateStr();
+    let tSnap = await fsdb.collection('today_data').doc(UID+'_'+today).get();
+    if(!tSnap.exists){
+      const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
+      const yStr=`${yesterday.getFullYear()}-${pad(yesterday.getMonth()+1)}-${pad(yesterday.getDate())}`;
+      let ySnap = await fsdb.collection('today_data').doc(UID+'_'+yStr).get();
+      if(ySnap.exists){const d=ySnap.data();if(d&&Object.keys(d.status||{}).length>0)tSnap=ySnap;}
+    }
+    if(tSnap.exists){
+      const d=tSnap.data();
+      todayData={date:d.date,status:d.status||{},dayNotes:d.day_notes||{},saleAmounts:d.sale_amounts||{},shiftNote:d.shift_note||''};
+    } else {
+      todayData={date:today,status:{},dayNotes:{},saleAmounts:{},shiftNote:''};
+    }
+
+    // history
+    const hSnap = await fsdb.collection('history').where('user_id','==',UID).orderBy('date','desc').limit(60).get();
+    historyData = hSnap.docs.map(d=>d.data());
+
+    // coverage_history
+    const covSnap = await fsdb.collection('coverage_history').where('user_id','==',UID).orderBy('date','desc').limit(60).get();
+    coverageHistory = covSnap.docs.map(d=>d.data());
+
+    // periods
+    const pSnap = await fsdb.collection('periods').where('user_id','==',UID).orderBy('start_date','desc').get();
+    periodsData = pSnap.docs.map(d=>d.data());
+
+    setSyncState('ok');
+  }catch(e){console.error(e);setSyncState('error');showToast('⚠️ خطأ في تحميل البيانات');}
+}
+
+async function saveCustomerToDB(c){
+  setSyncState('syncing');
+  try{
+    await fsdb.collection('customers').doc(c.id).set({
+      user_id:UID,name:c.name,phone:c.phone||'',time:c.time,type:c.type,cat:c.cat||'B',note:c.note||'',
+      created_at:c.created_at||new Date().toISOString()
+    },{merge:true});
+    setSyncState('ok');return true;
+  }catch(e){console.error(e);setSyncState('error');return false;}
+}
+
+async function deleteCustomerFromDB(id){
+  setSyncState('syncing');
+  try{
+    await fsdb.collection('customers').doc(id).delete();
+    setSyncState('ok');return true;
+  }catch(e){console.error(e);setSyncState('error');return false;}
+}
+
+async function saveTodayToDB(){
+  setSyncState('syncing');
+  try{
+    const docId=UID+'_'+todayData.date;
+    await fsdb.collection('today_data').doc(docId).set({
+      date:todayData.date,user_id:UID,
+      status:todayData.status||{},
+      day_notes:todayData.dayNotes||{},
+      sale_amounts:todayData.saleAmounts||{},
+      shift_note:todayData.shiftNote||'',
+      updated_at:new Date().toISOString()
+    },{merge:true});
+    setSyncState('ok');return true;
+  }catch(e){console.error(e);setSyncState('error');return false;}
+}
+
+async function saveHistoryToDB(snap){
+  setSyncState('syncing');
+  try{
+    const docId=UID+'_'+snap.date;
+    await fsdb.collection('history').doc(docId).set({
+      date:snap.date,user_id:UID,items:snap.items,shiftNote:snap.shiftNote||''
+    },{merge:true});
+    setSyncState('ok');return true;
+  }catch(e){console.error(e);setSyncState('error');return false;}
+}
+
+// ══════════════ TODAY PAGE ══════════════
+function timeToMin(t){
+  if(!t)return 0;
+  const isPM=t.includes('م'),isAM=t.includes('ص');
+  const cl=t.replace('ص','').replace('م','').trim().split(':');
+  let h=parseInt(cl[0])||0,m=parseInt(cl[1])||0;
+  if(isPM&&h!==12)h+=12;if(isAM&&h===12)h=0;
+  const total=h*60+m;
+  // shift-aware: الشيفت بيبدأ 8م (480 دقيقة من 8م = 1200 من أول اليوم)
+  // أوقات الشيفت: 8م(1200) → 12ص(1440/0) → 5ص(300)
+  // نعمل offset عشان 8م تبقى أول الترتيب
+  if(total>=1200)return total-1200;       // 8م→11:59م = 0→239
+  if(total<300)return total+240;          // 12ص→4:59ص = 240→539
+  return 9999;                            // أوقات خارج الشيفت في الآخر
+}
+
+function render(){
+  const search=(document.getElementById('search-input')||{}).value||'';
+  const total=customers.length;
+  const bought=customers.filter(c=>getStatus(c.id)==='bought').length;
+  const interested=customers.filter(c=>getStatus(c.id)==='interested').length;
+  const totalSales=customers.reduce((s,c)=>getStatus(c.id)==='bought'?s+(parseFloat((todayData.saleAmounts||{})[c.id])||0):s,0);
+
+  // إحصائيات التغطية
+  const covClients=covToday.active?(colleagues[covToday.colleague]||[]):[];
+  const covBought=covClients.filter(c=>getCovStatus(c.id)==='bought').length;
+  const covSales=covClients.reduce((s,c)=>getCovStatus(c.id)==='bought'?s+(covToday.amounts[c.id]||0):s,0);
+
+  document.getElementById('s-total').textContent=total+(covClients.length?'+'+covClients.length:'');
+  document.getElementById('s-bought').textContent=bought+(covBought?'+'+covBought:'');
+  document.getElementById('s-interested').textContent=interested;
+  document.getElementById('s-sales').textContent=(totalSales+covSales)>0?((totalSales+covSales)>=1000?Math.round((totalSales+covSales)/1000)+'k':(totalSales+covSales)):0;
+  const allTotal=total+covClients.length;
+  const allDone=customers.filter(c=>isDone(c.id)).length+covClients.filter(c=>['bought','interested','rejected','noans'].includes(getCovStatus(c.id))).length;
+  if(document.getElementById('tg-total'))document.getElementById('tg-total').textContent=allTotal+' إجمالي';
+  if(document.getElementById('tg-bought'))document.getElementById('tg-bought').textContent=(bought+covBought)+' اشترى';
+  const pctNow=allTotal?Math.round(allDone/allTotal*100):0;
+  if(document.getElementById('tg-pct'))document.getElementById('tg-pct').textContent=pctNow+'%';
+  if(document.getElementById('tg-sales')&&(totalSales+covSales)>0)document.getElementById('tg-sales').textContent='💰 '+((totalSales+covSales)>=1000?Math.round((totalSales+covSales)/1000)+'k':(totalSales+covSales));
+
+  const doneCount=customers.filter(c=>isDone(c.id)).length;
+  const pct=total?Math.round(doneCount/total*100):0;
+  document.getElementById('prog-pct').textContent=pct+'%';
+  document.getElementById('prog-fill').style.width=pct+'%';
+
+  let list=[...customers];
+  let covList=activeFilter==='تغطية'?[...covClients]:(covToday.active?[...covClients]:[]);
+  if(search.trim()){
+    const q=search.trim().toLowerCase();
+    list=list.filter(c=>c.name.toLowerCase().includes(q)||(c.phone||'').includes(q));
+    covList=covList.filter(c=>c.name.toLowerCase().includes(q)||(c.phone||'').includes(q));
+  }
+  const f=activeFilter;
+  if(f==='تغطية'){ list=[]; }
+  else if(f==='اشترى')  { list=list.filter(c=>getStatus(c.id)==='bought'); covList=covList.filter(c=>getCovStatus(c.id)==='bought'); }
+  else if(f==='مهتم')   { list=list.filter(c=>getStatus(c.id)==='interested'); covList=covList.filter(c=>getCovStatus(c.id)==='interested'); }
+  else if(f==='رفض')    { list=list.filter(c=>getStatus(c.id)==='rejected'); covList=covList.filter(c=>getCovStatus(c.id)==='rejected'); }
+  else if(f==='مش رد')  { list=list.filter(c=>getStatus(c.id)==='noans'); covList=covList.filter(c=>getCovStatus(c.id)==='noans'); }
+  else if(f==='لم يتم') { list=list.filter(c=>getStatus(c.id)==='none'); covList=covList.filter(c=>getCovStatus(c.id)==='none'); }
+  else if(f==='فون')    { list=list.filter(c=>c.type==='فون'); covList=covList.filter(c=>c.type==='فون'); }
+  else if(f==='واتس')   { list=list.filter(c=>c.type==='واتس'); covList=covList.filter(c=>c.type==='واتس'); }
+  else if('ABC'.includes(f)&&f.length===1){ list=list.filter(c=>(c.cat||'B')===f); covList=covList.filter(c=>(c.cat||'B')===f); }
+
+  list.sort((a,b)=>{ const ad=isDone(a.id),bd=isDone(b.id); if(ad!==bd)return ad?1:-1; return timeToMin(a.time)-timeToMin(b.time); });
+  covList.sort((a,b)=>{ const ad=['bought','interested','rejected','noans'].includes(getCovStatus(a.id)),bd=['bought','interested','rejected','noans'].includes(getCovStatus(b.id)); if(ad!==bd)return ad?1:-1; return timeToMin(a.time)-timeToMin(b.time); });
+
+  const el=document.getElementById('list');
+  // رسم عملائى
+  let html=list.map(c=>{
+    const cat=c.cat||'B',st=getStatus(c.id),scfg=STATUS_CFG[st]||STATUS_CFG.none;
+    const dn=(todayData.dayNotes||{})[c.id]||'';
+    const sale=(todayData.saleAmounts||{})[c.id];
+    const nowH3=new Date().getHours(),inShift3=nowH3>=20||nowH3<5;
+    const nowM=timeToMin(getCurrentTimeStr()),shiftNow=nowM<300?nowM+1440:nowM;
+    const cTimeM=timeToMin(c.time),shiftTime=cTimeM<300?cTimeM+1440:cTimeM;
+    const isOverdue=inShift3&&st==='none'&&c.time&&shiftNow>=shiftTime;
+    return `<div class="ccard ${isDone(c.id)?'done':''} cat-${cat} ${scfg.cls}" ${isOverdue?'style="border-color:rgba(239,68,68,.4)!important"':''}>
+      <button class="status-btn" onclick="openStatus('${c.id}')">${scfg.btnIcon}</button>
+      <div class="cinfo" onclick="openProfile('${c.id}')">
+        <div class="cname">${esc(c.name)}</div>
+        <div class="cmeta">
+          ${c.phone?`<span>📱 ${esc(c.phone)}</span>`:''}
+          <span>🕐 ${c.time}</span>
+          <span class="badge ${c.type==='فون'?'phone':'whats'}">${c.type}</span>
+          <span class="badge-cat ${cat}">${cat}</span>
+          <span style="font-size:10px;color:${scfg.dotCls==='bought'?'#34d399':scfg.dotCls==='interested'?'#fbbf24':scfg.dotCls==='rejected'?'#f87171':scfg.dotCls==='noans'?'#9ca3af':'var(--muted)'}">${scfg.icon} ${scfg.label}</span>
+          ${sale&&st==='bought'?`<span style="color:#a78bfa;font-weight:700">💰 ${sale} ج</span>`:''}
+          ${isOverdue?'<span style="color:#f87171;font-weight:700;font-size:10px">⚠️ متأخر</span>':''}
+        </div>
+        ${dn?`<div class="note-preview">📝 ${esc(dn)}</div>`:(c.note?`<div class="note-preview" style="color:var(--muted2)">💬 ${esc(c.note)}</div>`:'')}
+      </div>
+      <div class="card-actions">
+        <button class="ic-btn purple" onclick="openStatus('${c.id}')">📝</button>
+        <button class="ic-btn" onclick="openEdit('${c.id}')" style="color:#93c5fd;border-color:rgba(59,130,246,.3)">✏️</button>
+        <button class="ic-btn red" onclick="askDel('${c.id}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // رسم عملاء التغطية
+  if(covList.length){
+    html+=`<div style="font-size:11px;font-weight:700;color:#fbbf24;padding:10px 4px 4px;display:flex;align-items:center;gap:6px">🔄 عملاء ${esc(covToday.colleague)} <span style="color:var(--muted);font-weight:400">(${covList.length})</span></div>`;
+    html+=covList.map(c=>{
+      const cat=c.cat||'B',st=getCovStatus(c.id),scfg=STATUS_CFG[st]||STATUS_CFG.none;
+      const dn=covToday.notes[c.id]||'';
+      const sale=covToday.amounts[c.id];
+      const isDoneCov=['bought','interested','rejected','noans'].includes(st);
+      return `<div class="ccard ${isDoneCov?'done':''} cat-${cat} ${scfg.cls}" style="border:1px solid rgba(245,158,11,.3)!important">
+        <button class="status-btn" onclick="openCovStatus('${c.id}')">${scfg.btnIcon}</button>
+        <div class="cinfo" onclick="openCovStatus('${c.id}')">
+          <div class="cname"><span class="cov-badge">🔄 ${esc(covToday.colleague)}</span>${esc(c.name)}</div>
+          <div class="cmeta">
+            ${c.phone?`<span>📱 ${esc(c.phone)}</span>`:''}
+            <span>🕐 ${c.time}</span>
+            <span class="badge ${c.type==='فون'?'phone':'whats'}">${c.type}</span>
+            <span class="badge-cat ${cat}">${cat}</span>
+            <span style="font-size:10px;color:${scfg.dotCls==='bought'?'#34d399':scfg.dotCls==='interested'?'#fbbf24':scfg.dotCls==='rejected'?'#f87171':scfg.dotCls==='noans'?'#9ca3af':'var(--muted)'}">${scfg.icon} ${scfg.label}</span>
+            ${sale&&st==='bought'?`<span style="color:#a78bfa;font-weight:700">💰 ${sale} ج</span>`:''}
+          </div>
+          ${dn?`<div class="note-preview" style="color:#fbbf24">📝 ${esc(dn)}</div>`:''}
+        </div>
+        <div class="card-actions">
+          <button class="ic-btn" onclick="openCovStatus('${c.id}')" style="color:#fbbf24;border-color:rgba(245,158,11,.3)">📝</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  if(!html){
+    el.innerHTML=`<div class="empty"><div class="ico">${(customers.length+covList.length)?'🔍':'📭'}</div><p>${(customers.length+covList.length)?'مفيش نتايج':'اضغط + عميل لإضافة أول عميل'}</p></div>`;
+    return;
+  }
+  el.innerHTML=html;
+}
+
+function getCurrentTimeStr(){
+  const now=new Date();
+  let h=now.getHours(),m=now.getMinutes();
+  const isPM=h>=12,isAM=h<12;
+  const h12=h%12||12;
+  return `${h12}:${pad(m)} ${isPM?'م':'ص'}`;
+}
+
+function setFilter(btn){
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');activeFilter=btn.dataset.f;render();
+}
+
+// ══════════════ ADD / EDIT ══════════════
+function openAdd(){
+  editingId=null;
+  document.getElementById('form-title').textContent='➕ إضافة عميل جديد';
+  ['f-name','f-phone','f-note'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('f-time').value='9:00 ص';
+  document.getElementById('f-type').value='فون';
+  document.getElementById('f-cat').value='B';
+  document.getElementById('add-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('f-name').focus(),150);
+}
+function openEdit(id){
+  const c=customers.find(x=>x.id===id);if(!c)return;
+  editingId=id;
+  document.getElementById('form-title').textContent='✏️ تعديل العميل';
+  document.getElementById('f-name').value=c.name;
+  document.getElementById('f-phone').value=c.phone||'';
+  document.getElementById('f-time').value=c.time;
+  document.getElementById('f-type').value=c.type;
+  document.getElementById('f-note').value=c.note||'';
+  document.getElementById('f-cat').value=c.cat||'B';
+  document.getElementById('add-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('f-name').focus(),150);
+}
+async function saveCustomer(){
+  const name=document.getElementById('f-name').value.trim();
+  const phone=document.getElementById('f-phone').value.trim();
+  if(!name){showToast('❌ اكتب اسم العميل!');return;}
+  const btn=document.querySelector('#add-modal .submit-btn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ جاري الحفظ...';}
+  const obj={time:document.getElementById('f-time').value,type:document.getElementById('f-type').value,
+              note:document.getElementById('f-note').value.trim(),cat:document.getElementById('f-cat').value,phone};
+  let ok=false;
+  if(editingId){
+    customers=customers.map(c=>c.id===editingId?{...c,name,...obj}:c);
+    ok=await saveCustomerToDB({id:editingId,name,...obj});
+    if(!ok)await loadAll();
+  }else{
+    const newC={id:uid(),name,...obj,created_at:new Date().toISOString()};
+    customers.push(newC);
+    ok=await saveCustomerToDB(newC);
+    if(!ok)customers=customers.filter(c=>c.id!==newC.id);
+  }
+  if(btn){btn.disabled=false;btn.textContent='✔ حفظ';}
+  if(ok){render();document.getElementById('add-modal').style.display='none';showToast('✅ تم الحفظ');}
+  else showToast('❌ فشل الحفظ — تأكد من الاتصال');
+}
+
+// ══════════════ STATUS ══════════════
+let currentPickedStatus='none';
+function openStatus(id){
+  statusingId=id;
+  const c=customers.find(x=>x.id===id);
+  document.getElementById('status-client-name').textContent='👤 '+((c&&c.name)||'');
+  currentPickedStatus=getStatus(id);
+  // reset buttons
+  ['bought','interested','rejected','noans'].forEach(s=>{
+    const btn=document.getElementById('sp-'+s);
+    if(btn)btn.classList.toggle('active',s===currentPickedStatus);
+  });
+  document.getElementById('status-note').value=(todayData.dayNotes||{})[id]||'';
+  document.getElementById('sale-amount').value=(todayData.saleAmounts||{})[id]||'';
+  document.getElementById('sale-amount-wrap').style.display=currentPickedStatus==='bought'?'block':'none';
+  document.getElementById('status-modal').style.display='flex';
+}
+function pickStatus(s){
+  currentPickedStatus=s;
+  ['bought','interested','rejected','noans'].forEach(st=>{
+    const btn=document.getElementById('sp-'+st);
+    if(btn)btn.classList.toggle('active',st===s);
+  });
+  document.getElementById('sale-amount-wrap').style.display=s==='bought'?'block':'none';
+}
+async function saveStatus(){
+  todayData.status=todayData.status||{};
+  todayData.dayNotes=todayData.dayNotes||{};
+  todayData.saleAmounts=todayData.saleAmounts||{};
+  todayData.status[statusingId]=currentPickedStatus;
+  todayData.dayNotes[statusingId]=document.getElementById('status-note').value.trim();
+  if(currentPickedStatus==='bought'){
+    const amt=parseFloat(document.getElementById('sale-amount').value)||0;
+    todayData.saleAmounts[statusingId]=amt;
+  }else{
+    delete todayData.saleAmounts[statusingId];
+  }
+  render();
+  document.getElementById('status-modal').style.display='none';
+  await saveTodayToDB();
+  showToast('✅ تم حفظ الحالة');
+}
+
+// ══════════════ DAY NOTE ══════════════
+function openDayNote(){
+  document.getElementById('dn-text').value=todayData.shiftNote||'';
+  document.getElementById('daynote-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('dn-text').focus(),150);
+}
+async function saveDayNote(){
+  todayData.shiftNote=document.getElementById('dn-text').value.trim();
+  updateDayNote();
+  document.getElementById('daynote-modal').style.display='none';
+  await saveTodayToDB();
+  showToast('✅ تم حفظ ملاحظة الشيفت');
+}
+function updateDayNote(){
+  const el=document.getElementById('day-note-preview');
+  if(el)el.textContent=todayData.shiftNote||'ملاحظة الشيفت... اضغط للكتابة';
+}
+
+// ══════════════ REMINDERS ══════════════
+function checkReminders(){
+  const nowH=new Date().getHours();
+  // الشيفت من 8م (20) لـ 5ص (5) — خارج الشيفت مفيش تنبيهات
+  const inShift=nowH>=20||nowH<5;
+  if(!inShift){
+    document.getElementById('reminder-badge').style.display='none';
+    return;
+  }
+  const nowMin=timeToMin(getCurrentTimeStr());
+  const shiftNowMin=nowMin<300?nowMin+1440:nowMin;
+  const overdue=customers.filter(c=>{
+    if(getStatus(c.id)!=='none'||!c.time)return false;
+    const ct=timeToMin(c.time);
+    const shiftCt=ct<300?ct+1440:ct;
+    return shiftNowMin>=shiftCt;
+  });
+  const badge=document.getElementById('reminder-badge');
+  const cnt=document.getElementById('reminder-count');
+  if(overdue.length){
+    badge.style.display='inline-flex';
+    cnt.textContent=overdue.length;
+  }else{
+    badge.style.display='none';
+  }
+}
+
+// ══════════════ DELETE / RESET ══════════════
+function askDel(id){
+  const c=customers.find(x=>x.id===id);if(!c)return;
+  showConfirm('🗑️','حذف العميل؟',`سيتم حذف "${c.name}" نهائياً`,'حذف','red',async()=>{
+    customers=customers.filter(x=>x.id!==id);
+    if(todayData.status)delete todayData.status[id];
+    if(todayData.dayNotes)delete todayData.dayNotes[id];
+    if(todayData.saleAmounts)delete todayData.saleAmounts[id];
+    await deleteCustomerFromDB(id);await saveTodayToDB();render();showToast('✅ تم الحذف');
+  });
+}
+function askReset(){
+  const bought=customers.filter(c=>getStatus(c.id)==='bought').length;
+  const total=customers.length;
+  const pending=customers.filter(c=>getStatus(c.id)==='none').length;
+  const sales=customers.reduce((s,c)=>s+(getStatus(c.id)==='bought'?parseFloat((todayData.saleAmounts||{})[c.id])||0:0),0);
+  const pendingWarn=pending>0?`\n⚠️ لسه فيه ${pending} عميل لم يتم التواصل معاه`:'';
+  showConfirm('🔄','تصفير اليوم؟',
+    `اشترى ${bought} من ${total}${sales>0?' — مبيعات: '+sales+' ج':''}${pendingWarn}\nسيتم حفظ السجل وبدء يوم جديد`,
+    '✔ صفّر','gold',async()=>{
+    await doAutoSave();
+    todayData={date:dateStr(),status:{},dayNotes:{},saleAmounts:{},shiftNote:''};
+    await saveTodayToDB();render();updateDayNote();showToast('✅ تم حفظ السجل وتصفير اليوم');
+  });
+}
+async function doAutoSave(){
+  if(!customers.length)return;
+  const snap={
+    date:todayData.date||dateStr(),
+    shiftNote:todayData.shiftNote||'',
+    items:customers.map(c=>({
+      id:c.id,name:c.name,phone:c.phone||'',type:c.type,time:c.time,cat:c.cat||'B',
+      status:getStatus(c.id),note:c.note||'',
+      dayNote:(todayData.dayNotes||{})[c.id]||'',
+      saleAmount:(todayData.saleAmounts||{})[c.id]||0
+    }))
+  };
+  await saveHistoryToDB(snap);
+  const idx=historyData.findIndex(h=>h.date===snap.date);
+  if(idx!==-1)historyData[idx]=snap;else historyData.unshift(snap);
+}
+
+// ══════════════ EXCEL EXPORT ══════════════
+function exportWeeklyExcel(){
+  if(!historyData.length&&!customers.length){showToast('⚠️ مفيش بيانات للتصدير');return;}
+
+  const last7=[...historyData].slice(0,7).reverse();
+  const today=dateStr();
+  const totalSalesWeek=last7.reduce((s,d)=>s+(d.items||[]).reduce((ss,i)=>ss+(i.status==='bought'?i.saleAmount||0:0),0),0);
+  const totalBoughtWeek=last7.reduce((s,d)=>s+(d.items||[]).filter(i=>i.status==='bought').length,0);
+
+  const wb=XLSX.utils.book_new();
+
+  // ═══ STYLES ═══
+  const hdrStyle={font:{bold:true,color:{rgb:'FFFFFF'},sz:12},fill:{fgColor:{rgb:'1D4ED8'}},alignment:{horizontal:'center',vertical:'center',wrapText:true},border:{top:{style:'thin',color:{rgb:'93C5FD'}},bottom:{style:'thin',color:{rgb:'93C5FD'}},left:{style:'thin',color:{rgb:'93C5FD'}},right:{style:'thin',color:{rgb:'93C5FD'}}}};
+  const titleStyle={font:{bold:true,color:{rgb:'FFFFFF'},sz:14},fill:{fgColor:{rgb:'0A1628'}},alignment:{horizontal:'center',vertical:'center'}};
+  const boughtStyle={font:{bold:true,color:{rgb:'065F46'},sz:11},fill:{fgColor:{rgb:'D1FAE5'}},alignment:{horizontal:'center'},border:{top:{style:'thin',color:{rgb:'A7F3D0'}},bottom:{style:'thin',color:{rgb:'A7F3D0'}},left:{style:'thin',color:{rgb:'A7F3D0'}},right:{style:'thin',color:{rgb:'A7F3D0'}}}};
+  const interestedStyle={font:{bold:true,color:{rgb:'92400E'},sz:11},fill:{fgColor:{rgb:'FEF3C7'}},alignment:{horizontal:'center'},border:{top:{style:'thin',color:{rgb:'FCD34D'}},bottom:{style:'thin',color:{rgb:'FCD34D'}},left:{style:'thin',color:{rgb:'FCD34D'}},right:{style:'thin',color:{rgb:'FCD34D'}}}};
+  const rejectedStyle={font:{bold:true,color:{rgb:'991B1B'},sz:11},fill:{fgColor:{rgb:'FEE2E2'}},alignment:{horizontal:'center'},border:{top:{style:'thin',color:{rgb:'FCA5A5'}},bottom:{style:'thin',color:{rgb:'FCA5A5'}},left:{style:'thin',color:{rgb:'FCA5A5'}},right:{style:'thin',color:{rgb:'FCA5A5'}}}};
+  const noansStyle={font:{color:{rgb:'374151'},sz:11},fill:{fgColor:{rgb:'F3F4F6'}},alignment:{horizontal:'center'},border:{top:{style:'thin',color:{rgb:'D1D5DB'}},bottom:{style:'thin',color:{rgb:'D1D5DB'}},left:{style:'thin',color:{rgb:'D1D5DB'}},right:{style:'thin',color:{rgb:'D1D5DB'}}}};
+  const noneStyle={font:{color:{rgb:'9CA3AF'},sz:11},fill:{fgColor:{rgb:'F9FAFB'}},alignment:{horizontal:'center'},border:{top:{style:'thin',color:{rgb:'E5E7EB'}},bottom:{style:'thin',color:{rgb:'E5E7EB'}},left:{style:'thin',color:{rgb:'E5E7EB'}},right:{style:'thin',color:{rgb:'E5E7EB'}}}};
+  const nameStyle={font:{bold:true,sz:11},fill:{fgColor:{rgb:'F8FAFC'}},alignment:{horizontal:'right',vertical:'center'},border:{top:{style:'thin',color:{rgb:'E2E8F0'}},bottom:{style:'thin',color:{rgb:'E2E8F0'}},left:{style:'thin',color:{rgb:'E2E8F0'}},right:{style:'thin',color:{rgb:'E2E8F0'}}}};
+  const catAStyle={font:{bold:true,color:{rgb:'92400E'},sz:11},fill:{fgColor:{rgb:'FEF3C7'}},alignment:{horizontal:'center'}};
+  const catBStyle={font:{bold:true,color:{rgb:'1E40AF'},sz:11},fill:{fgColor:{rgb:'DBEAFE'}},alignment:{horizontal:'center'}};
+  const catCStyle={font:{bold:true,color:{rgb:'374151'},sz:11},fill:{fgColor:{rgb:'F3F4F6'}},alignment:{horizontal:'center'}};
+  const totalStyle={font:{bold:true,color:{rgb:'FFFFFF'},sz:12},fill:{fgColor:{rgb:'0A1628'}},alignment:{horizontal:'center',vertical:'center'},border:{top:{style:'medium',color:{rgb:'1D4ED8'}},bottom:{style:'medium',color:{rgb:'1D4ED8'}},left:{style:'thin',color:{rgb:'1D4ED8'}},right:{style:'thin',color:{rgb:'1D4ED8'}}}};
+  const salesStyle={font:{bold:true,color:{rgb:'5B21B6'},sz:11},fill:{fgColor:{rgb:'EDE9FE'}},alignment:{horizontal:'center'},border:{top:{style:'thin',color:{rgb:'C4B5FD'}},bottom:{style:'thin',color:{rgb:'C4B5FD'}},left:{style:'thin',color:{rgb:'C4B5FD'}},right:{style:'thin',color:{rgb:'C4B5FD'}}}};
+  const cellBorder={border:{top:{style:'thin',color:{rgb:'E2E8F0'}},bottom:{style:'thin',color:{rgb:'E2E8F0'}},left:{style:'thin',color:{rgb:'E2E8F0'}},right:{style:'thin',color:{rgb:'E2E8F0'}}}};
+
+  function C(v,s){return {v,s,t:typeof v==='number'?'n':'s'};}
+
+  // ═══ SHEET 1: ملخص الأسبوع ═══
+  const ws1={};
+  const stLabels={bought:'✓ اشترى',interested:'★ مهتم',rejected:'✗ رفض',noans:'⏸ مش رد',none:'—'};
+  const stStyles={bought:boughtStyle,interested:interestedStyle,rejected:rejectedStyle,noans:noansStyle,none:noneStyle};
+
+  // Row 1: Title
+  ws1['A1']={v:`تقرير متابعة العملاء — ${last7.length?last7[0].date+' → '+last7[last7.length-1].date:today}`,s:titleStyle,t:'s'};
+  const totalCols=4+last7.length+2;
+  ws1['!merges']=[{s:{r:0,c:0},e:{r:0,c:totalCols-1}}];
+
+  // Row 2: KPIs
+  ws1[XLSX.utils.encode_cell({r:1,c:0})]={v:`إجمالي العملاء: ${customers.length}   |   إجمالي الطلبات: ${totalBoughtWeek}   |   إجمالي المبيعات: ${totalSalesWeek>0?totalSalesWeek+' ج':'—'}`,s:{font:{bold:true,color:{rgb:'1D4ED8'},sz:12},fill:{fgColor:{rgb:'EFF6FF'}},alignment:{horizontal:'center'}},t:'s'};
+  ws1['!merges'].push({s:{r:1,c:0},e:{r:1,c:totalCols-1}});
+
+  // Row 3: Headers
+  const hdrs=['اسم العميل','الفئة','الموبايل','نوع التواصل'];
+  last7.forEach(d=>{
+    const dt=new Date(d.date+'T00:00:00');
+    hdrs.push(dt.toLocaleDateString('ar-EG',{weekday:'short'})+'\n'+dt.toLocaleDateString('ar-EG',{day:'numeric',month:'numeric'}));
+  });
+  hdrs.push('إجمالي الطلبات','إجمالي المبيعات');
+  hdrs.forEach((h,c)=>ws1[XLSX.utils.encode_cell({r:2,c})]={v:h,s:hdrStyle,t:'s'});
+
+  // Rows 4+: Customers
+  customers.forEach((cu,ri)=>{
+    const r=ri+3;
+    const cat=cu.cat||'B';
+    ws1[XLSX.utils.encode_cell({r,c:0})]={v:cu.name,s:nameStyle,t:'s'};
+    ws1[XLSX.utils.encode_cell({r,c:1})]={v:cat,s:cat==='A'?catAStyle:cat==='B'?catBStyle:catCStyle,t:'s'};
+    ws1[XLSX.utils.encode_cell({r,c:2})]={v:cu.phone||'—',s:{...cellBorder,alignment:{horizontal:'center'}},t:'s'};
+    ws1[XLSX.utils.encode_cell({r,c:3})]={v:cu.type,s:{...cellBorder,alignment:{horizontal:'center'}},t:'s'};
+    let tb=0,ts=0;
+    last7.forEach((day,di)=>{
+      const item=(day.items||[]).find(i=>i.id===cu.id);
+      const st=item?item.status||'none':'none';
+      if(st==='bought'){tb++;ts+=(item.saleAmount||0);}
+      const lbl=stLabels[st]||'—';
+      const sale=st==='bought'&&item&&item.saleAmount?' ('+item.saleAmount+' ج)':'';
+      ws1[XLSX.utils.encode_cell({r,c:4+di})]={v:lbl+sale,s:stStyles[st]||noneStyle,t:'s'};
+    });
+    ws1[XLSX.utils.encode_cell({r,c:4+last7.length})]={v:tb,s:{...boughtStyle,font:{bold:true,color:{rgb:'065F46'},sz:12}},t:'n'};
+    ws1[XLSX.utils.encode_cell({r,c:5+last7.length})]={v:ts>0?ts+' ج':'—',s:salesStyle,t:'s'};
+  });
+
+  // Total row
+  const tr=customers.length+3;
+  ws1[XLSX.utils.encode_cell({r:tr,c:0})]={v:'الإجمالي',s:totalStyle,t:'s'};
+  ws1['!merges'].push({s:{r:tr,c:0},e:{r:tr,c:3}});
+  last7.forEach((day,di)=>{
+    const b=(day.items||[]).filter(i=>i.status==='bought').length;
+    const s=(day.items||[]).reduce((ss,i)=>ss+(i.status==='bought'?i.saleAmount||0:0),0);
+    ws1[XLSX.utils.encode_cell({r:tr,c:4+di})]={v:`${b} طلب${s>0?' — '+s+' ج':''}`,s:totalStyle,t:'s'};
+  });
+  ws1[XLSX.utils.encode_cell({r:tr,c:4+last7.length})]={v:totalBoughtWeek,s:totalStyle,t:'n'};
+  ws1[XLSX.utils.encode_cell({r:tr,c:5+last7.length})]={v:totalSalesWeek>0?totalSalesWeek+' ج':'—',s:totalStyle,t:'s'};
+
+  ws1['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:tr,c:totalCols-1}});
+  ws1['!rows']=[{hpt:30},{hpt:25},{hpt:40},...customers.map(()=>({hpt:22})),{hpt:28}];
+  ws1['!cols']=[{wch:22},{wch:6},{wch:14},{wch:10},...last7.map(()=>({wch:16})),{wch:14},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,ws1,'ملخص الأسبوع');
+
+  // ═══ SHEET 2: المبيعات ═══
+  const ws2={};
+  ws2['A1']={v:'تفاصيل المبيعات الأسبوعية',s:titleStyle,t:'s'};
+  ws2['!merges']=[{s:{r:0,c:0},e:{r:0,c:4}}];
+  const sh2=['التاريخ','اسم العميل','الفئة','قيمة الطلب','ملاحظة'];
+  sh2.forEach((h,c)=>ws2[XLSX.utils.encode_cell({r:1,c})]={v:h,s:hdrStyle,t:'s'});
+  let sr=2,totalS=0;
+  last7.forEach(day=>{
+    const dt=new Date(day.date+'T00:00:00');
+    const dateStr2=dt.toLocaleDateString('ar-EG',{weekday:'long',day:'numeric',month:'long'});
+    (day.items||[]).filter(i=>i.status==='bought'&&i.saleAmount>0).forEach(item=>{
+      const cat=item.cat||'B';
+      totalS+=item.saleAmount;
+      ws2[XLSX.utils.encode_cell({r:sr,c:0})]={v:dateStr2,s:{...cellBorder,font:{sz:11}},t:'s'};
+      ws2[XLSX.utils.encode_cell({r:sr,c:1})]={v:item.name,s:{...nameStyle},t:'s'};
+      ws2[XLSX.utils.encode_cell({r:sr,c:2})]={v:cat,s:cat==='A'?catAStyle:cat==='B'?catBStyle:catCStyle,t:'s'};
+      ws2[XLSX.utils.encode_cell({r:sr,c:3})]={v:item.saleAmount,s:{...salesStyle,font:{bold:true,color:{rgb:'5B21B6'},sz:12}},t:'n'};
+      ws2[XLSX.utils.encode_cell({r:sr,c:4})]={v:item.dayNote||'—',s:{...cellBorder,font:{color:{rgb:'6B7280'},sz:11}},t:'s'};
+      sr++;
+    });
+  });
+  // Total
+  ws2[XLSX.utils.encode_cell({r:sr,c:0})]={v:'الإجمالي',s:totalStyle,t:'s'};
+  ws2['!merges'].push({s:{r:sr,c:0},e:{r:sr,c:2}});
+  ws2[XLSX.utils.encode_cell({r:sr,c:3})]={v:totalS,s:{...totalStyle,font:{bold:true,color:{rgb:'FFFFFF'},sz:13}},t:'n'};
+  ws2[XLSX.utils.encode_cell({r:sr,c:4})]={v:'',s:totalStyle,t:'s'};
+  ws2['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:sr,c:4}});
+  ws2['!rows']=[{hpt:30},{hpt:35},...Array(sr-1).fill({hpt:22}),{hpt:28}];
+  ws2['!cols']=[{wch:24},{wch:22},{wch:6},{wch:14},{wch:35}];
+  XLSX.utils.book_append_sheet(wb,ws2,'المبيعات');
+
+  // ═══ SHEET 3: الملاحظات ═══
+  const ws3={};
+  ws3['A1']={v:'ملاحظات العملاء اليومية',s:titleStyle,t:'s'};
+  ws3['!merges']=[{s:{r:0,c:0},e:{r:0,c:4}}];
+  const sh3=['التاريخ','اسم العميل','الحالة','ملاحظة اليوم','ملاحظة الشيفت'];
+  sh3.forEach((h,c)=>ws3[XLSX.utils.encode_cell({r:1,c})]={v:h,s:hdrStyle,t:'s'});
+  let nr=2;
+  last7.forEach(day=>{
+    const dt=new Date(day.date+'T00:00:00');
+    const dateStr3=dt.toLocaleDateString('ar-EG',{weekday:'long',day:'numeric',month:'long'});
+    (day.items||[]).filter(i=>i.dayNote).forEach(item=>{
+      const st=item.status||'none';
+      ws3[XLSX.utils.encode_cell({r:nr,c:0})]={v:dateStr3,s:{...cellBorder,font:{sz:11}},t:'s'};
+      ws3[XLSX.utils.encode_cell({r:nr,c:1})]={v:item.name,s:nameStyle,t:'s'};
+      ws3[XLSX.utils.encode_cell({r:nr,c:2})]={v:stLabels[st]||st,s:stStyles[st]||noneStyle,t:'s'};
+      ws3[XLSX.utils.encode_cell({r:nr,c:3})]={v:item.dayNote,s:{...cellBorder,font:{color:{rgb:'5B21B6'},sz:11},alignment:{wrapText:true}},t:'s'};
+      ws3[XLSX.utils.encode_cell({r:nr,c:4})]={v:day.shiftNote||'—',s:{...cellBorder,font:{color:{rgb:'6B7280'},sz:11},alignment:{wrapText:true}},t:'s'};
+      nr++;
+    });
+  });
+  ws3['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:Math.max(nr,2),c:4}});
+  ws3['!rows']=[{hpt:30},{hpt:35},...Array(nr-1).fill({hpt:22})];
+  ws3['!cols']=[{wch:24},{wch:22},{wch:12},{wch:40},{wch:40}];
+  XLSX.utils.book_append_sheet(wb,ws3,'الملاحظات');
+
+  XLSX.writeFile(wb,`تقرير_أسبوعي_${today}.xlsx`);
+  showToast('✅ تم تصدير Excel');
+}
+
+// ══════════════ HISTORY ══════════════
+let histFilter='الكل';
+function setHistFilter(btn){
+  document.querySelectorAll('[data-hf]').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  histFilter=btn.dataset.hf;
+  renderHistory();
+}
+
+function getHistDateRange(){
+  const now=new Date();
+  const today=dateStr();
+  // أول يوم في الأسبوع (السبت)
+  const dow=now.getDay(); // 0=أحد
+  const daysToSat=dow===6?0:(dow+1)%7;
+  const weekStart=new Date(now); weekStart.setDate(now.getDate()-daysToSat);
+  const weekStartStr=weekStart.toISOString().slice(0,10);
+  // الأسبوع السابق
+  const prevWeekEnd=new Date(weekStart); prevWeekEnd.setDate(weekStart.getDate()-1);
+  const prevWeekStart=new Date(prevWeekEnd); prevWeekStart.setDate(prevWeekEnd.getDate()-6);
+  // أول الشهر
+  const monthStart=today.slice(0,8)+'01';
+  // الشهر السابق
+  const prevMonthDate=new Date(now.getFullYear(),now.getMonth()-1,1);
+  const prevMonthStart=prevMonthDate.toISOString().slice(0,10);
+  const prevMonthEnd=new Date(now.getFullYear(),now.getMonth(),0).toISOString().slice(0,10);
+  return {weekStartStr,prevWeekStart:prevWeekStart.toISOString().slice(0,10),prevWeekEnd:prevWeekEnd.toISOString().slice(0,10),monthStart,prevMonthStart,prevMonthEnd,today};
+}
+
+function renderHistory(){
+  var el=document.getElementById('hist-list');
+  if(!historyData.length){el.innerHTML='<div class="empty"><div class="ico">📭</div><p>مفيش سجل لحد دلوقتي</p></div>';return;}
+
+  var searchQ=(document.getElementById('hist-search')?document.getElementById('hist-search').value:'').trim().toLowerCase();
+  var range=getHistDateRange();
+  var filtered=historyData.slice();
+  if(histFilter==='week')filtered=filtered.filter(function(d){return d.date>=range.weekStartStr&&d.date<=range.today;});
+  else if(histFilter==='last_week')filtered=filtered.filter(function(d){return d.date>=range.prevWeekStart&&d.date<=range.prevWeekEnd;});
+  else if(histFilter==='month')filtered=filtered.filter(function(d){return d.date>=range.monthStart&&d.date<=range.today;});
+  else if(histFilter==='last_month')filtered=filtered.filter(function(d){return d.date>=range.prevMonthStart&&d.date<=range.prevMonthEnd;});
+  if(searchQ)filtered=filtered.filter(function(d){return (d.items||[]).some(function(i){return i.name&&i.name.toLowerCase().indexOf(searchQ)>=0;});});
+
+  if(!filtered.length){el.innerHTML='<div class="empty"><div class="ico">🔍</div><p>مفيش نتايج</p></div>';return;}
+
+  var totalBought=0,totalSales=0,totalItems=0;
+  filtered.forEach(function(d){
+    (d.items||[]).forEach(function(i){
+      totalItems++;
+      if(i.status==='bought'){totalBought++;totalSales+=i.saleAmount||0;}
+    });
+  });
+  var convRate=totalItems?Math.round(totalBought/totalItems*100):0;
+  var sub=document.getElementById('hist-sub');
+  if(sub)sub.textContent=filtered.length+' يوم — '+totalBought+' طلب'+(totalSales>0?' — '+totalSales+' ج':'');
+
+  var h='';
+  h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center">';
+  h+='<div><div style="font-size:16px;font-weight:900;color:#60a5fa">'+filtered.length+'</div><div style="font-size:10px;color:var(--muted)">يوم</div></div>';
+  h+='<div><div style="font-size:16px;font-weight:900;color:#34d399">'+totalBought+'</div><div style="font-size:10px;color:var(--muted)">طلب</div></div>';
+  h+='<div><div style="font-size:16px;font-weight:900;color:#fbbf24">'+convRate+'%</div><div style="font-size:10px;color:var(--muted)">تحويل</div></div>';
+  h+='<div><div style="font-size:16px;font-weight:900;color:#a78bfa">'+(totalSales>0?totalSales+' ج':'—')+'</div><div style="font-size:10px;color:var(--muted)">مبيعات</div></div>';
+  h+='</div>';
+
+  filtered.forEach(function(day){
+    var allItems=day.items||[];
+    var bought=0,sales=0,interested=0;
+    allItems.forEach(function(i){
+      if(i.status==='bought'){bought++;sales+=i.saleAmount||0;}
+      if(i.status==='interested')interested++;
+    });
+    var convD=allItems.length?Math.round(bought/allItems.length*100):0;
+    var showItems=searchQ?allItems.filter(function(i){return i.name&&i.name.toLowerCase().indexOf(searchQ)>=0;}):allItems;
+
+    h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:14px">';
+    h+='<div class="hist-hdr" onclick="var b=this.nextElementSibling;b.classList.toggle(\'hidden\');this.querySelector(\'.arr\').textContent=b.classList.contains(\'hidden\')?\'▼\':\'▲\'">';
+    h+='<div>';
+    h+='<div class="hist-date">'+dateAr(day.date)+'</div>';
+    h+='<div style="display:flex;gap:8px;margin-top:3px;flex-wrap:wrap">';
+    h+='<span style="font-size:10px;color:#34d399;font-weight:700">🟢 '+bought+' اشترى</span>';
+    if(interested>0)h+='<span style="font-size:10px;color:#fbbf24">🟡 '+interested+' مهتم</span>';
+    h+='<span style="font-size:10px;color:var(--muted)">'+convD+'% تحويل</span>';
+    if(sales>0)h+='<span style="font-size:10px;color:#a78bfa;font-weight:700">💰 '+sales+' ج</span>';
+    h+='</div></div>';
+    h+='<div style="display:flex;align-items:center;gap:6px">';
+    h+='<span class="hist-badge">'+bought+'/'+allItems.length+'</span>';
+    h+='<span class="arr" style="font-size:11px;color:var(--muted)">▼</span>';
+    h+='</div></div>';
+
+    h+='<div class="hist-body hidden">';
+    if(day.shiftNote)h+='<div style="background:rgba(139,92,246,.1);border-radius:8px;padding:6px 10px;margin:8px 13px;font-size:11px;color:#a78bfa">📓 '+esc(day.shiftNote)+'</div>';
+    showItems.forEach(function(i){
+      var st=i.status||'none';
+      var stLabel={bought:'🟢 اشترى',interested:'🟡 مهتم',rejected:'🔴 رفض',noans:'⏸ مش رد',none:'○ لم يتم'}[st]||st;
+      var dot={bought:'#10b981',interested:'#f59e0b',rejected:'#ef4444',noans:'#4b5563',none:'#374151'}[st]||'#374151';
+      h+='<div class="hist-item">';
+      h+='<div class="hist-dot" style="background:'+dot+'"></div>';
+      h+='<div style="flex:1">';
+      h+='<div class="hist-name">'+esc(i.name)+' <span style="color:var(--muted);font-size:10px">— '+i.time+' — '+stLabel+(i.saleAmount>0?' — 💰 '+i.saleAmount+' ج':'')+'</span></div>';
+      if(i.dayNote)h+='<div class="hist-note">📝 '+esc(i.dayNote)+'</div>';
+      else if(i.note)h+='<div class="hist-note" style="color:var(--muted2)">💬 '+esc(i.note)+'</div>';
+      h+='</div></div>';
+    });
+    h+='</div></div>';
+  });
+
+  el.innerHTML=h;
+}
+
+
+// ══════════════ ANALYTICS ══════════════
+function switchAnalyticsTab(tab){
+  var tabs=['general','monthly','client','coverage'];
+  tabs.forEach(function(t){
+    var btn=document.getElementById('tab-'+t);
+    var ct=document.getElementById(t==='general'?'analytics-content':t+'-content');
+    if(btn){btn.style.background='transparent';btn.style.color=t==='coverage'?'#fbbf24':'var(--muted)';btn.style.borderColor=t==='coverage'?'rgba(245,158,11,.4)':'var(--border)';}
+    if(ct)ct.style.display='none';
+  });
+  var activeBtn=document.getElementById('tab-'+tab);
+  var activeCt=document.getElementById(tab==='general'?'analytics-content':tab+'-content');
+  if(activeBtn){activeBtn.style.background=tab==='coverage'?'rgba(245,158,11,.2)':('var(--blue)');activeBtn.style.color=tab==='coverage'?'#fbbf24':'#fff';activeBtn.style.borderColor=tab==='coverage'?'rgba(245,158,11,.5)':'var(--blue)';}
+  if(activeCt)activeCt.style.display='flex';
+  if(tab==='monthly')renderMonthly();
+  if(tab==='client')renderClientSearch();
+  if(tab==='coverage')renderCoverageAnalytics();
+  if(tab==='coverage')renderCoverageAnalytics();
+}
+
+function renderAnalytics(){
+  const el=document.getElementById('analytics-content');
+  if(!historyData.length){el.innerHTML='<div class="empty"><div class="ico">📊</div><p>محتاج سجل أيام أول</p></div>';return;}
+  document.getElementById('analytics-period').textContent=`بناء على ${historyData.length} يوم مسجل`;
+
+  // ═══ حسابات أساسية ═══
+  const orderCount={},dayCount={},lastContact={},salesTotal={},allDaySales={};
+  customers.forEach(c=>{orderCount[c.id]=0;dayCount[c.id]={0:0,1:0,2:0,3:0,4:0,5:0,6:0};lastContact[c.id]=null;salesTotal[c.id]=0;});
+  const sorted=[...historyData].sort((a,b)=>a.date>b.date?1:-1);
+  sorted.forEach(day=>{
+    const dow=dayOfWeek(day.date);
+    (day.items||[]).forEach(item=>{
+      if(!item.id)return;
+      if(!orderCount[item.id])orderCount[item.id]=0;
+      if(!dayCount[item.id])dayCount[item.id]={0:0,1:0,2:0,3:0,4:0,5:0,6:0};
+      if(!salesTotal[item.id])salesTotal[item.id]=0;
+      if(item.status==='bought'){
+        orderCount[item.id]++;
+        dayCount[item.id][dow]=(dayCount[item.id][dow]||0)+1;
+        lastContact[item.id]=day.date;
+        salesTotal[item.id]+=(item.saleAmount||0);
+      }
+    });
+  });
+
+  // ═══ أسبوع هذا vs أسبوع سابق ═══
+  const week1=historyData.slice(0,7);
+  const week2=historyData.slice(7,14);
+  const w1Sales=week1.reduce((s,d)=>s+(d.items||[]).reduce((ss,i)=>ss+(i.status==='bought'?i.saleAmount||0:0),0),0);
+  const w2Sales=week2.reduce((s,d)=>s+(d.items||[]).reduce((ss,i)=>ss+(i.status==='bought'?i.saleAmount||0:0),0),0);
+  const w1Bought=week1.reduce((s,d)=>s+(d.items||[]).filter(i=>i.status==='bought').length,0);
+  const w2Bought=week2.reduce((s,d)=>s+(d.items||[]).filter(i=>i.status==='bought').length,0);
+  const salesDiff=w2Sales>0?Math.round((w1Sales-w2Sales)/w2Sales*100):null;
+  const boughtDiff=w2Bought>0?Math.round((w1Bought-w2Bought)/w2Bought*100):null;
+
+  // ═══ مقارنة بالمتوسط الشخصي ═══
+  const allShiftSales=historyData.map(d=>(d.items||[]).reduce((s,i)=>s+(i.status==='bought'?i.saleAmount||0:0),0));
+  const allShiftBought=historyData.map(d=>(d.items||[]).filter(i=>i.status==='bought').length);
+  const avgSalesPerShift=allShiftSales.length?Math.round(allShiftSales.reduce((a,b)=>a+b,0)/allShiftSales.length):0;
+  const avgBoughtPerShift=allShiftBought.length?Math.round(allShiftBought.reduce((a,b)=>a+b,0)/allShiftBought.length*10)/10:0;
+  const todaySales=allShiftSales[0]||0;
+  const todayBought=allShiftBought[0]||0;
+  const bestShiftSales=Math.max(...allShiftSales,0);
+  const bestShiftBought=Math.max(...allShiftBought,0);
+  // آخر 7 أيام vs قبلها
+  const last7Sales=allShiftSales.slice(0,7).reduce((a,b)=>a+b,0);
+  const prev7Sales=allShiftSales.slice(7,14).reduce((a,b)=>a+b,0);
+  const trendPct=prev7Sales>0?Math.round((last7Sales-prev7Sales)/prev7Sales*100):null;
+  // streak - أيام متتالية فوق المتوسط
+  let streak=0;
+  for(const s of allShiftSales){if(s>=avgSalesPerShift)streak++;else break;}
+
+  // ═══ معدل الإنجاز الكلي ═══
+  const totalDaysData=historyData.length;
+  const totalBoughtAll=Object.values(orderCount).reduce((s,v)=>s+v,0);
+  const totalContactsAll=historyData.reduce((s,d)=>s+(d.items||[]).length,0);
+  const overallRate=totalContactsAll?Math.round(totalBoughtAll/totalContactsAll*100):0;
+
+  // ═══ أفضل عميل ═══
+  const bestClient=customers.length?[...customers].sort((a,b)=>(salesTotal[b.id]||0)-(salesTotal[a.id]||0))[0]:null;
+  const bestDay=DAYS_AR[Object.entries(
+    historyData.reduce((acc,d)=>{const dow=dayOfWeek(d.date);const b=(d.items||[]).filter(i=>i.status==='bought').length;acc[dow]=(acc[dow]||0)+b;return acc;},{})
+  ).sort((a,b)=>b[1]-a[1])[0]?.[0]||0];
+
+  // ═══ مؤشر حرارة العميل ═══
+  function getHeat(id){
+    const hist=historyData.filter(d=>(d.items||[]).some(i=>i.id===id));
+    if(!hist.length)return 'new';
+    const last5=hist.slice(0,5);
+    const rate=last5.filter(d=>(d.items||[]).find(i=>i.id===id&&i.status==='bought')).length/last5.length;
+    if(rate>=0.7)return 'hot';
+    if(rate>=0.3)return 'warm';
+    return 'cold';
+  }
+  const heatCfg={hot:{icon:'🔥',label:'ساخن',color:'#f97316',bg:'rgba(249,115,22,.12)',border:'rgba(249,115,22,.3)'},warm:{icon:'🌡️',label:'عادي',color:'#f59e0b',bg:'rgba(245,158,11,.1)',border:'rgba(245,158,11,.25)'},cold:{icon:'❄️',label:'بارد',color:'#60a5fa',bg:'rgba(96,165,250,.1)',border:'rgba(96,165,250,.25)'},new:{icon:'🆕',label:'جديد',color:'#a78bfa',bg:'rgba(167,139,250,.1)',border:'rgba(167,139,250,.25)'}};
+
+  // ═══ عملاء اختفوا ═══
+  const disappeared=customers.filter(c=>{
+    const hist=historyData.filter(d=>d.date<dateStr()&&(d.items||[]).some(i=>i.id===c.id));
+    if(hist.length<4)return false;
+    const old4=hist.slice(2,6);const recent2=hist.slice(0,2);
+    const oldRate=old4.filter(d=>(d.items||[]).find(i=>i.id===c.id&&i.status==='bought')).length/old4.length;
+    const recentRate=recent2.filter(d=>(d.items||[]).find(i=>i.id===c.id&&i.status==='bought')).length/recent2.length;
+    return oldRate>=0.5&&recentRate===0;
+  });
+
+  // ═══ فئات A/B/C ═══
+  const catStats={A:{total:0,bought:0,sales:0},B:{total:0,bought:0,sales:0},C:{total:0,bought:0,sales:0}};
+  historyData.forEach(day=>(day.items||[]).forEach(item=>{
+    const c=customers.find(x=>x.id===item.id);const cat=(c&&c.cat)||'B';
+    if(catStats[cat]){catStats[cat].total++;if(item.status==='bought'){catStats[cat].bought++;catStats[cat].sales+=(item.saleAmount||0);}}
+  }));
+
+  // ═══ آخر 14 يوم ═══
+  const last14=[...historyData].slice(0,14).reverse();
+  const dailyLabels=last14.map(d=>d.date.slice(5));
+  const dailyRates=last14.map(d=>{const t=(d.items||[]).length,dn=(d.items||[]).filter(i=>i.status==='bought').length;return t?Math.round(dn/t*100):0;});
+  const dailySales=last14.map(d=>(d.items||[]).reduce((s,i)=>s+(i.status==='bought'?i.saleAmount||0:0),0));
+  const weekDayTotals={0:0,1:0,2:0,3:0,4:0,5:0,6:0},weekDayCounts={0:0,1:0,2:0,3:0,4:0,5:0,6:0};
+  historyData.forEach(day=>{const dow=dayOfWeek(day.date);const t=(day.items||[]).length,dn=(day.items||[]).filter(i=>i.status==='bought').length;if(t){weekDayTotals[dow]+=dn;weekDayCounts[dow]++;}});
+  const weekDayRates=DAYS_AR.map((_,i)=>weekDayCounts[i]?Math.round(weekDayTotals[i]/weekDayCounts[i]*100):0);
+  const ranked=[...customers].sort((a,b)=>{const sd=(salesTotal[b.id]||0)-(salesTotal[a.id]||0);if(sd!==0)return sd;return (orderCount[b.id]||0)-(orderCount[a.id]||0);});
+  const maxOrders=orderCount[ranked[0]?.id]||1;
+
+  const CD={responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#6b8aaa',font:{family:'Cairo',size:10}},grid:{color:'rgba(255,255,255,.05)'}},y:{ticks:{color:'#6b8aaa',font:{family:'Cairo',size:10}},grid:{color:'rgba(255,255,255,.05)'}}}};
+
+  el.innerHTML=`
+
+  <!-- ١. ملخص سريع -->
+  <div class="card" style="border-right:4px solid #3b82f6">
+    <div class="section-title" style="margin-bottom:10px">⚡ ملخص سريع</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center">
+      <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:10px 4px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">أعلى عميل</div>
+        <div style="font-size:12px;font-weight:900;color:#34d399;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px">${bestClient?esc(bestClient.name):'—'}</div>
+        <div style="font-size:10px;color:#a78bfa;margin-top:2px">${bestClient&&salesTotal[bestClient.id]>0?salesTotal[bestClient.id]+' ج':orderCount[bestClient?.id||'']||0+' طلب'}</div>
+      </div>
+      <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:10px 4px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">أفضل يوم</div>
+        <div style="font-size:14px;font-weight:900;color:#fbbf24">${bestDay||'—'}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">للتواصل</div>
+      </div>
+      <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:10px 4px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">معدل الإنجاز</div>
+        <div style="font-size:14px;font-weight:900;color:${overallRate>=60?'#34d399':overallRate>=40?'#fbbf24':'#f87171'}">${overallRate}%</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${totalBoughtAll} من ${totalContactsAll}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ٢. مقارنة الأسبوعين -->
+  ${week2.length>0?`
+  <div class="card" style="border-right:4px solid #8b5cf6">
+    <div class="section-title" style="margin-bottom:10px">📆 هذا الأسبوع vs الأسبوع السابق</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:6px">الطلبات</div>
+        <div style="font-size:20px;font-weight:900;color:#60a5fa">${w1Bought}</div>
+        <div style="font-size:10px;color:var(--muted)">السابق: ${w2Bought}</div>
+        ${boughtDiff!==null?`<div style="font-size:12px;font-weight:700;margin-top:4px;color:${boughtDiff>=0?'#34d399':'#f87171'}">${boughtDiff>=0?'↑':'↓'} ${Math.abs(boughtDiff)}%</div>`:''}
+      </div>
+      <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:6px">المبيعات</div>
+        <div style="font-size:20px;font-weight:900;color:#a78bfa">${w1Sales>0?w1Sales+' ج':'—'}</div>
+        <div style="font-size:10px;color:var(--muted)">السابق: ${w2Sales>0?w2Sales+' ج':'—'}</div>
+        ${salesDiff!==null?`<div style="font-size:12px;font-weight:700;margin-top:4px;color:${salesDiff>=0?'#34d399':'#f87171'}">${salesDiff>=0?'↑':'↓'} ${Math.abs(salesDiff)}%</div>`:''}
+      </div>
+    </div>
+  </div>`:''}
+
+  <!-- ٢.٥ مقارنة بالمتوسط الشخصي -->
+  <div class="card" style="border-right:4px solid #10b981">
+    <div class="section-title" style="margin-bottom:10px">📊 أداءك مقارنة بمتوسطك</div>
+    <!-- مقاييس -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;text-align:center">
+      <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:10px 4px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px">متوسط مبيعاتك</div>
+        <div style="font-size:16px;font-weight:900;color:#34d399">${avgSalesPerShift>0?avgSalesPerShift+' ج':'—'}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">لكل شيفت</div>
+      </div>
+      <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:10px 4px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px">متوسط الطلبات</div>
+        <div style="font-size:16px;font-weight:900;color:#60a5fa">${avgBoughtPerShift}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">لكل شيفت</div>
+      </div>
+      <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:10px 4px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px">أفضل شيفت</div>
+        <div style="font-size:16px;font-weight:900;color:#fbbf24">${bestShiftSales>0?bestShiftSales+' ج':bestShiftBought+' 🛒'}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">كل السجل</div>
+      </div>
+    </div>
+    <!-- اليوم vs المتوسط -->
+    ${todaySales>0||todayBought>0?`
+    <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px 12px;margin-bottom:10px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">📅 آخر شيفت مسجل</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:12px;color:#e8edf5">المبيعات</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:14px;font-weight:900;color:${todaySales>=avgSalesPerShift?'#34d399':'#f87171'}">${todaySales} ج</span>
+          ${avgSalesPerShift>0?`<span style="font-size:11px;color:${todaySales>=avgSalesPerShift?'#34d399':'#f87171'};font-weight:700">${todaySales>=avgSalesPerShift?'↑':'↓'} ${Math.abs(Math.round((todaySales-avgSalesPerShift)/avgSalesPerShift*100))}%</span>`:''}
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;color:#e8edf5">الطلبات</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:14px;font-weight:900;color:${todayBought>=avgBoughtPerShift?'#34d399':'#f87171'}">${todayBought} 🛒</span>
+          ${avgBoughtPerShift>0?`<span style="font-size:11px;color:${todayBought>=avgBoughtPerShift?'#34d399':'#f87171'};font-weight:700">${todayBought>=avgBoughtPerShift?'↑':'↓'} ${Math.abs(Math.round((todayBought-avgBoughtPerShift)/avgBoughtPerShift*100))}%</span>`:''}
+        </div>
+      </div>
+    </div>`:''}
+    <!-- trend 7 أيام -->
+    ${trendPct!==null?`
+    <div style="background:${trendPct>=0?'rgba(16,185,129,.08)':'rgba(239,68,68,.08)'};border:1px solid ${trendPct>=0?'rgba(16,185,129,.2)':'rgba(239,68,68,.2)'};border-radius:10px;padding:10px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:${trendPct>=0?'#34d399':'#f87171'}">📈 الأسبوع الأخير ${trendPct>=0?'أحسن':'أقل'} من السابق</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${last7Sales} ج vs ${prev7Sales} ج</div>
+      </div>
+      <div style="font-size:22px;font-weight:900;color:${trendPct>=0?'#34d399':'#f87171'}">${trendPct>=0?'↑':'↓'}${Math.abs(trendPct)}%</div>
+    </div>`:''}
+    <!-- streak -->
+    ${streak>1?`
+    <div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:24px">🔥</span>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#fbbf24">${streak} أيام متتالية فوق المتوسط!</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">استمر كده 💪</div>
+      </div>
+    </div>`:''}
+    <!-- شريط 14 يوم -->
+    <div style="margin-top:10px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">آخر 14 شيفت (كل خانة = شيفت واحد)</div>
+      <div style="display:flex;gap:3px;height:50px;align-items:flex-end">
+        ${[...allShiftSales].slice(0,14).reverse().map((s,i)=>{
+          const maxS=Math.max(...allShiftSales.slice(0,14),1);
+          const pct=Math.round(s/maxS*100);
+          const isAboveAvg=s>=avgSalesPerShift;
+          const isToday=i===13;
+          const barColor=isToday?'#f59e0b':isAboveAvg?'#34d399':'#3b82f6';
+          return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+            <div style="width:100%;height:${Math.max(pct,4)}%;background:${barColor};border-radius:3px 3px 0 0;min-height:3px;position:relative" title="${s} ج"></div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px">
+        <span style="font-size:9px;color:var(--muted)">← قديم</span>
+        <div style="display:flex;gap:8px">
+          <span style="font-size:9px"><span style="color:#34d399">■</span> فوق المتوسط</span>
+          <span style="font-size:9px"><span style="color:#3b82f6">■</span> تحت المتوسط</span>
+          <span style="font-size:9px"><span style="color:#f59e0b">■</span> آخر شيفت</span>
+        </div>
+        <span style="font-size:9px;color:var(--muted)">جديد →</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ٢.٧ مقارنة الفترات -->
+  ${true?`
+  <div class="card" style="border-right:4px solid #0891b2">
+    <div class="section-title" style="margin-bottom:10px">📅 مقارنة الفترات المغلقة</div>
+    <!-- tabs -->
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <button onclick="this.parentElement.querySelectorAll('button').forEach(b=>b.style.opacity='.5');this.style.opacity='1';document.getElementById('periods-week').style.display='block';document.getElementById('periods-month').style.display='none'" style="flex:1;padding:6px;border-radius:8px;border:1px solid rgba(8,145,178,.4);background:rgba(8,145,178,.15);color:#22d3ee;font-weight:700;font-size:12px;cursor:pointer">📅 أسبوعي</button>
+      <button onclick="this.parentElement.querySelectorAll('button').forEach(b=>b.style.opacity='.5');this.style.opacity='1';document.getElementById('periods-week').style.display='none';document.getElementById('periods-month').style.display='block'" style="flex:1;padding:6px;border-radius:8px;border:1px solid rgba(8,145,178,.4);background:rgba(8,145,178,.08);color:#67e8f9;font-size:12px;cursor:pointer;opacity:.5">🗓️ شهري</button>
+    </div>
+    <!-- weekly -->
+    <div id="periods-week">
+      ${periodsData.filter(p=>p.type==='week').slice(0,5).map((p,i,arr)=>{
+        const s=p.summary||{};
+        const prev=arr[i+1]?.summary||null;
+        const salesDiff2=prev&&prev.totalSales>0?Math.round((s.totalSales-prev.totalSales)/prev.totalSales*100):null;
+        const isLatest=i===0;
+        return `<div style="background:${isLatest?'rgba(8,145,178,.1)':'rgba(255,255,255,.03)'};border:1px solid ${isLatest?'rgba(8,145,178,.3)':'rgba(255,255,255,.08)'};border-radius:12px;padding:10px 12px;margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <div>
+              <span style="font-size:12px;font-weight:700;color:${isLatest?'#22d3ee':'#e8edf5'}">${isLatest?'🟢 ':''} ${p.start_date} → ${p.end_date}</span>
+              <span style="font-size:10px;color:var(--muted);margin-right:6px">${s.days} يوم</span>
+            </div>
+            ${salesDiff2!==null?`<span style="font-size:12px;font-weight:700;color:${salesDiff2>=0?'#34d399':'#f87171'}">${salesDiff2>=0?'↑':'↓'}${Math.abs(salesDiff2)}%</span>`:''}
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center">
+            <div style="background:rgba(255,255,255,.05);border-radius:8px;padding:6px 2px">
+              <div style="font-size:13px;font-weight:900;color:#34d399">${s.totalBought||0}</div>
+              <div style="font-size:9px;color:var(--muted)">طلب</div>
+            </div>
+            <div style="background:rgba(255,255,255,.05);border-radius:8px;padding:6px 2px">
+              <div style="font-size:13px;font-weight:900;color:#a78bfa">${s.totalSales>0?s.totalSales+' ج':'—'}</div>
+              <div style="font-size:9px;color:var(--muted)">مبيعات</div>
+            </div>
+            <div style="background:rgba(255,255,255,.05);border-radius:8px;padding:6px 2px">
+              <div style="font-size:13px;font-weight:900;color:#fbbf24">${s.convRate||0}%</div>
+              <div style="font-size:9px;color:var(--muted)">تحويل</div>
+            </div>
+            <div style="background:rgba(255,255,255,.05);border-radius:8px;padding:6px 2px">
+              <div style="font-size:11px;font-weight:700;color:#60a5fa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.bestClient||'—'}</div>
+              <div style="font-size:9px;color:var(--muted)">أفضل عميل</div>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    <!-- monthly -->
+    <div id="periods-month" style="display:none">
+      ${periodsData.filter(p=>p.type==='month').length===0?
+        '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">مفيش فترات شهرية مغلقة لحد دلوقتي</div>':
+        periodsData.filter(p=>p.type==='month').slice(0,3).map((p,i,arr)=>{
+          const s=p.summary||{};
+          const prev=arr[i+1]?.summary||null;
+          const salesDiff3=prev&&prev.totalSales>0?Math.round((s.totalSales-prev.totalSales)/prev.totalSales*100):null;
+          const isLatest=i===0;
+          return `<div style="background:${isLatest?'rgba(8,145,178,.1)':'rgba(255,255,255,.03)'};border:1px solid ${isLatest?'rgba(8,145,178,.3)':'rgba(255,255,255,.08)'};border-radius:12px;padding:10px 12px;margin-bottom:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <span style="font-size:12px;font-weight:700;color:${isLatest?'#22d3ee':'#e8edf5'}">${p.start_date} → ${p.end_date} (${s.days} يوم)</span>
+              ${salesDiff3!==null?`<span style="font-size:12px;font-weight:700;color:${salesDiff3>=0?'#34d399':'#f87171'}">${salesDiff3>=0?'↑':'↓'}${Math.abs(salesDiff3)}%</span>`:''}
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center">
+              <div style="background:rgba(255,255,255,.05);border-radius:8px;padding:6px 2px"><div style="font-size:13px;font-weight:900;color:#34d399">${s.totalBought||0}</div><div style="font-size:9px;color:var(--muted)">طلب</div></div>
+              <div style="background:rgba(255,255,255,.05);border-radius:8px;padding:6px 2px"><div style="font-size:13px;font-weight:900;color:#a78bfa">${s.totalSales>0?s.totalSales+' ج':'—'}</div><div style="font-size:9px;color:var(--muted)">مبيعات</div></div>
+              <div style="background:rgba(255,255,255,.05);border-radius:8px;padding:6px 2px"><div style="font-size:13px;font-weight:900;color:#fbbf24">${s.convRate||0}%</div><div style="font-size:9px;color:var(--muted)">تحويل</div></div>
+              <div style="background:rgba(255,255,255,.05);border-radius:8px;padding:6px 2px"><div style="font-size:11px;font-weight:700;color:#60a5fa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.bestClient||'—'}</div><div style="font-size:9px;color:var(--muted)">أفضل عميل</div></div>
+            </div>
+          </div>`;
+        }).join('')
+      }
+    </div>
+  </div>`:''}
+
+  <!-- ٣. مؤشر حرارة العملاء -->
+  <div>
+    <div class="section-title">🌡️ مؤشر حرارة العملاء</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:8px">
+      ${['hot','warm','cold','new'].map(h=>{
+        const cnt=customers.filter(c=>getHeat(c.id)===h).length;
+        const cfg=heatCfg[h];
+        return `<div style="background:${cfg.bg};border:1px solid ${cfg.border};border-radius:10px;padding:8px 10px;display:flex;align-items:center;gap:8px">
+          <span style="font-size:20px">${cfg.icon}</span>
+          <div><div style="font-size:13px;font-weight:700;color:${cfg.color}">${cfg.label}</div><div style="font-size:11px;color:var(--muted)">${cnt} عميل</div></div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${[...customers].filter(c=>getHeat(c.id)==='hot').slice(0,5).map(c=>{
+        const h=heatCfg.hot;
+        return `<div style="background:${h.bg};border:1px solid ${h.border};border-radius:10px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:13px;font-weight:700;color:${h.color}">${h.icon} ${esc(c.name)}</span>
+          <span style="font-size:11px;color:#a78bfa">${salesTotal[c.id]>0?salesTotal[c.id]+' ج':orderCount[c.id]+' طلب'}</span>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>
+
+  <!-- ٤. عملاء اختفوا -->
+  ${disappeared.length>0?`
+  <div>
+    <div class="section-title">📉 عملاء توقفوا عن الشراء</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${disappeared.map(c=>`
+        <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#f87171">⚠️ ${esc(c.name)}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">آخر شراء: ${lastContact[c.id]?dateAr(lastContact[c.id]):'—'}</div>
+          </div>
+          <div style="text-align:left">
+            <div style="font-size:11px;color:#a78bfa">${salesTotal[c.id]>0?salesTotal[c.id]+' ج':''}</div>
+          </div>
+        </div>`).join('')}
+    </div>
+  </div>`:''}
+
+  <!-- ٥. أداء الفئات + المبيعات -->
+  <div>
+    <div class="section-title">🏷️ أداء الفئات</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+      ${['A','B','C'].map(cat=>{
+        const s=catStats[cat],pct=s.total?Math.round(s.bought/s.total*100):0;
+        const colors={A:'#fbbf24',B:'#60a5fa',C:'#9ca3af'};
+        const cnt=customers.filter(c=>(c.cat||'B')===cat).length;
+        const avgSale=s.bought>0?Math.round(s.sales/s.bought):0;
+        return `<div class="card" style="text-align:center;border-top:3px solid ${colors[cat]}">
+          <div style="font-size:11px;font-weight:900;color:${colors[cat]};margin-bottom:2px">فئة ${cat}</div>
+          <div style="font-size:20px;font-weight:900;color:${colors[cat]}">${pct}%</div>
+          <div style="font-size:10px;color:var(--muted)">${cnt} عميل</div>
+          ${s.sales>0?`<div style="font-size:10px;color:#a78bfa;margin-top:2px">💰 ${s.sales} ج</div>`:''}
+          ${avgSale>0?`<div style="font-size:10px;color:#34d399;margin-top:1px">متوسط: ${avgSale} ج</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>
+  </div>
+
+  <!-- ٦. الرسوم البيانية -->
+  <div><div class="section-title">📈 معدل الإنجاز (آخر 14 يوم)</div><div class="chart-wrap"><canvas id="chart-daily"></canvas></div></div>
+  ${dailySales.some(v=>v>0)?`<div><div class="section-title">💰 المبيعات اليومية</div><div class="chart-wrap"><canvas id="chart-sales"></canvas></div></div>`:''}
+  <div><div class="section-title">📅 أفضل أيام التواصل</div><div class="chart-wrap"><canvas id="chart-weekday"></canvas></div></div>
+
+  <!-- ٧. ترتيب العملاء -->
+  <div><div class="section-title">🏆 ترتيب العملاء حسب المبيعات</div>
+    <div class="card">
+      ${ranked.slice(0,10).map((c,i)=>{
+        const cnt=orderCount[c.id]||0,sales=salesTotal[c.id]||0;
+        const heat=getHeat(c.id),hcfg=heatCfg[heat];
+        const clrs=['#f59e0b','#9ca3af','#cd7c2f','#60a5fa','#34d399'];
+        const medals=['🥇','🥈','🥉'];
+        const pct2=maxOrders?Math.round(cnt/maxOrders*100):0;
+        const avgSale=cnt>0?Math.round(sales/cnt):0;
+        return `<div class="rank-item">
+          <div class="rank-num" style="background:rgba(255,255,255,.07);color:${clrs[i]||'#6b8aaa'}">${medals[i]||i+1}</div>
+          <div class="rank-bar-wrap">
+            <div class="rank-name">${esc(c.name)} <span style="font-size:10px">${hcfg.icon}</span></div>
+            <div class="rank-bar-bg"><div class="rank-bar-fill" style="width:${pct2}%;background:${clrs[i]||'#3b82f6'}"></div></div>
+          </div>
+          <div style="text-align:left">
+            <div class="rank-count" style="color:${clrs[i]||'#6b8aaa'}">${cnt} 🛒</div>
+            ${sales>0?`<div style="font-size:10px;color:#a78bfa">💰 ${sales} ج</div>`:''}
+            ${avgSale>0?`<div style="font-size:9px;color:#34d399">avg ${avgSale}</div>`:''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>
+
+  <!-- ٨. تحليل كل عميل -->
+  <div>
+    <div class="section-title">👤 تحليل كل عميل</div>
+    ${customers.length===0?'<div class="empty"><div class="ico">👤</div><p>مفيش عملاء</p></div>':
+      [...customers].sort((a,b)=>{const sd=(salesTotal[b.id]||0)-(salesTotal[a.id]||0);if(sd!==0)return sd;return (orderCount[b.id]||0)-(orderCount[a.id]||0);}).map(c=>{
+        const dc=dayCount[c.id]||{0:0,1:0,2:0,3:0,4:0,5:0,6:0};
+        const total=orderCount[c.id]||0,sales=salesTotal[c.id]||0;
+        const last=lastContact[c.id];
+        const lastStr=last?dateAr(last):'لم يشترِ بعد';
+        const maxD=Math.max(...Object.values(dc),1);
+        const bestDayIdx=Object.entries(dc).sort((a,b)=>b[1]-a[1])[0];
+        const bestDayName=bestDayIdx&&bestDayIdx[1]>0?DAYS_AR[bestDayIdx[0]]:'—';
+        const CC={A:'#fbbf24',B:'#60a5fa',C:'#9ca3af'};const cat=c.cat||'B';
+        const heat=getHeat(c.id),hcfg=heatCfg[heat];
+        const avgSale=total>0?Math.round(sales/total):0;
+        const hist=historyData.filter(d=>(d.items||[]).some(i=>i.id===c.id));
+        const rate=hist.length?Math.round(hist.filter(d=>(d.items||[]).find(i=>i.id===c.id&&i.status==='bought')).length/hist.length*100):0;
+        const bars=DAYS_AR.map((_,i)=>{
+          const cnt2=dc[i]||0,pct=maxD>0?Math.round(cnt2/maxD*100):0,isBest=cnt2===maxD&&cnt2>0;
+          const barColor=isBest?'#34d399':cnt2>0?'#3b82f6':'rgba(255,255,255,.08)';
+          return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+            <div style="font-size:9px;color:${cnt2>0?'#e8edf5':'#374151'};font-weight:${isBest?'900':'400'}">${cnt2||''}</div>
+            <div style="width:100%;height:40px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;display:flex;align-items:flex-end">
+              <div style="width:100%;height:${pct}%;background:${barColor};border-radius:4px;min-height:${cnt2>0?'4px':'0'}"></div>
+            </div>
+            <div style="font-size:9px;color:${isBest?'#34d399':'#6b8aaa'};font-weight:${isBest?'700':'400'}">${DAYS_SHORT[i]}</div>
+          </div>`;
+        }).join('');
+        return `<div style="background:var(--card);border:1px solid var(--border);border-right:3px solid ${CC[cat]};border-radius:14px;padding:13px 14px;margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+            <div>
+              <div style="font-size:14px;font-weight:900;color:${CC[cat]}">${esc(c.name)} <span style="font-size:12px">${hcfg.icon}</span></div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">📞 ${c.type} · فئة ${cat} · ⭐ ${bestDayName} · معدل ${rate}%</div>
+            </div>
+            <div style="text-align:left">
+              <div style="font-size:13px;font-weight:900;color:#34d399">${total} 🛒</div>
+              ${sales>0?`<div style="font-size:11px;color:#a78bfa;font-weight:700">💰 ${sales} ج</div>`:''}
+              ${avgSale>0?`<div style="font-size:10px;color:#34d399">avg ${avgSale} ج</div>`:''}
+            </div>
+          </div>
+          <div style="display:flex;gap:4px;height:70px;align-items:flex-end;margin-bottom:8px">${bars}</div>
+          <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:7px 10px;font-size:11px">
+            🕐 آخر شراء: <span style="color:${last?'#60a5fa':'#6b8aaa'};font-weight:700">${lastStr}</span>
+          </div>
+        </div>`;
+      }).join('')
+    }
+  </div>`;
+
+  ['chart-daily','chart-weekday','chart-sales'].forEach(id=>{if(charts[id]){charts[id].destroy();delete charts[id];}});
+  setTimeout(()=>{
+    const cd=document.getElementById('chart-daily');
+    if(cd)charts['chart-daily']=new Chart(cd,{type:'line',data:{labels:dailyLabels,datasets:[{data:dailyRates,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.15)',tension:.4,fill:true,pointBackgroundColor:'#3b82f6',pointRadius:4}]},options:{...CD,scales:{...CD.scales,y:{...CD.scales.y,min:0,max:100,ticks:{...CD.scales.y.ticks,callback:v=>v+'%'}}}}});
+    const cw=document.getElementById('chart-weekday');
+    if(cw)charts['chart-weekday']=new Chart(cw,{type:'bar',data:{labels:DAYS_AR,datasets:[{data:weekDayRates,backgroundColor:weekDayRates.map(v=>v===Math.max(...weekDayRates)?'rgba(52,211,153,.7)':'rgba(59,130,246,.45)'),borderRadius:6}]},options:{...CD,scales:{...CD.scales,y:{...CD.scales.y,min:0,max:100,ticks:{...CD.scales.y.ticks,callback:v=>v+'%'}}}}});
+    const cs=document.getElementById('chart-sales');
+    if(cs&&dailySales.some(v=>v>0))charts['chart-sales']=new Chart(cs,{type:'bar',data:{labels:dailyLabels,datasets:[{data:dailySales,backgroundColor:'rgba(167,139,250,.5)',borderColor:'#a78bfa',borderRadius:6,borderWidth:1}]},options:{...CD}});
+  },50);
+}
+
+// ══════════════ MONTHLY ANALYSIS ══════════════
+function renderMonthly(){
+  var el=document.getElementById('monthly-content');
+  if(!el)return;
+  if(!historyData.length){
+    el.innerHTML='<div class="empty"><div class="ico">📭</div><p>مفيش بيانات كافية</p></div>';
+    return;
+  }
+
+  // تحديد الشهر الحالي والسابق
+  var now=new Date();
+  var curMonthStart=now.getFullYear()+'-'+(String(now.getMonth()+1).padStart(2,'0'))+'-01';
+  var prevMonthDate=new Date(now.getFullYear(),now.getMonth()-1,1);
+  var prevMonthStart=prevMonthDate.getFullYear()+'-'+(String(prevMonthDate.getMonth()+1).padStart(2,'0'))+'-01';
+  var prevMonthEnd=new Date(now.getFullYear(),now.getMonth(),0).toISOString().slice(0,10);
+
+  // اليوزر يختار الشهر
+  var selectedMonth=el.dataset.month||curMonthStart.slice(0,7);
+  var monthStart=selectedMonth+'-01';
+  var monthEnd=new Date(parseInt(selectedMonth.slice(0,4)),parseInt(selectedMonth.slice(5,7)),0).toISOString().slice(0,10);
+
+  // جمع أشهر موجودة في السجل
+  var months={};
+  historyData.forEach(function(d){
+    var m=d.date.slice(0,7);
+    if(!months[m])months[m]=[];
+    months[m].push(d);
+  });
+  var monthKeys=Object.keys(months).sort().reverse();
+
+  // بيانات الشهر المختار
+  var monthDays=historyData.filter(function(d){return d.date>=monthStart&&d.date<=monthEnd;});
+  var prevDays=historyData.filter(function(d){return d.date>=prevMonthStart&&d.date<=prevMonthEnd;});
+
+  function calcStats(days){
+    var bought=0,sales=0,total=0;
+    days.forEach(function(d){
+      (d.items||[]).forEach(function(i){
+        total++;
+        if(i.status==='bought'){bought++;sales+=i.saleAmount||0;}
+      });
+    });
+    return{bought:bought,sales:sales,total:total,conv:total?Math.round(bought/total*100):0,days:days.length};
+  }
+
+  var cur=calcStats(monthDays);
+  var prev=calcStats(prevDays);
+
+  // أفضل 5 عملاء في الشهر
+  var clientSales={};
+  monthDays.forEach(function(d){
+    (d.items||[]).forEach(function(i){
+      if(i.status==='bought'){
+        if(!clientSales[i.name])clientSales[i.name]={sales:0,orders:0};
+        clientSales[i.name].sales+=i.saleAmount||0;
+        clientSales[i.name].orders++;
+      }
+    });
+  });
+  var top5=Object.entries(clientSales).sort(function(a,b){return b[1].sales-a[1].sales;}).slice(0,5);
+
+  // أفضل أسبوع
+  var weeks={};
+  monthDays.forEach(function(d){
+    var date=new Date(d.date+'T00:00:00');
+    var dow=date.getDay();
+    var daysToSat=dow===6?0:(dow+1)%7;
+    var ws=new Date(date);ws.setDate(date.getDate()-daysToSat);
+    var wk=ws.toISOString().slice(0,10);
+    if(!weeks[wk])weeks[wk]={sales:0,bought:0,days:[]};
+    weeks[wk].days.push(d.date);
+    (d.items||[]).forEach(function(i){
+      if(i.status==='bought'){weeks[wk].sales+=i.saleAmount||0;weeks[wk].bought++;}
+    });
+  });
+  var bestWeek=Object.entries(weeks).sort(function(a,b){return b[1].sales-a[1].sales;})[0];
+
+  // أيام الذروة
+  var dayStats=monthDays.map(function(d){
+    var sales=0,bought=0;
+    (d.items||[]).forEach(function(i){if(i.status==='bought'){sales+=i.saleAmount||0;bought++;}});
+    return{date:d.date,sales:sales,bought:bought};
+  }).sort(function(a,b){return b.sales-a.sales;}).slice(0,5);
+
+  // بناء HTML
+  var h='';
+
+  // -- سيليكتور الشهر --
+  h+='<div style="padding:4px 0 2px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none">';
+  monthKeys.forEach(function(mk){
+    var active=mk===selectedMonth;
+    var d=new Date(mk+'-01');
+    var label=d.toLocaleDateString('ar-EG',{month:'long',year:'numeric'});
+    h+='<button onclick="document.getElementById(\'monthly-content\').dataset.month=\''+mk+'\';renderMonthly()" style="white-space:nowrap;padding:5px 12px;border-radius:20px;border:1px solid '+(active?'var(--blue)':'var(--border)')+';background:'+(active?'var(--blue)':'transparent')+';color:'+(active?'#fff':'var(--muted)')+';font-family:\'Cairo\',sans-serif;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0">'+label+'</button>';
+  });
+  h+='</div>';
+
+  // -- ملخص الشهر --
+  var salesDiff=prev.sales>0?Math.round((cur.sales-prev.sales)/prev.sales*100):null;
+  var boughtDiff=prev.bought>0?Math.round((cur.bought-prev.bought)/prev.bought*100):null;
+  h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px">';
+  h+='<div style="font-size:13px;font-weight:800;color:var(--blue-ll);margin-bottom:12px">📊 ملخص الشهر</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  // مبيعات
+  h+='<div style="background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.2);border-radius:12px;padding:12px;text-align:center">';
+  h+='<div style="font-size:11px;color:var(--muted);margin-bottom:4px">💰 إجمالي المبيعات</div>';
+  h+='<div style="font-size:20px;font-weight:900;color:#a78bfa">'+(cur.sales>0?cur.sales+' ج':'—')+'</div>';
+  if(salesDiff!==null)h+='<div style="font-size:11px;font-weight:700;color:'+(salesDiff>=0?'#34d399':'#f87171')+';margin-top:4px">'+(salesDiff>=0?'↑':'↓')+Math.abs(salesDiff)+'% عن الشهر السابق</div>';
+  h+='</div>';
+  // طلبات
+  h+='<div style="background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2);border-radius:12px;padding:12px;text-align:center">';
+  h+='<div style="font-size:11px;color:var(--muted);margin-bottom:4px">🛍️ إجمالي الطلبات</div>';
+  h+='<div style="font-size:20px;font-weight:900;color:#34d399">'+cur.bought+'</div>';
+  if(boughtDiff!==null)h+='<div style="font-size:11px;font-weight:700;color:'+(boughtDiff>=0?'#34d399':'#f87171')+';margin-top:4px">'+(boughtDiff>=0?'↑':'↓')+Math.abs(boughtDiff)+'% عن الشهر السابق</div>';
+  h+='</div>';
+  // أيام
+  h+='<div style="background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.2);border-radius:12px;padding:12px;text-align:center">';
+  h+='<div style="font-size:11px;color:var(--muted);margin-bottom:4px">📅 أيام الشيفت</div>';
+  h+='<div style="font-size:20px;font-weight:900;color:#60a5fa">'+cur.days+'</div>';
+  h+='</div>';
+  // نسبة التحويل
+  h+='<div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:12px;padding:12px;text-align:center">';
+  h+='<div style="font-size:11px;color:var(--muted);margin-bottom:4px">🎯 نسبة التحويل</div>';
+  h+='<div style="font-size:20px;font-weight:900;color:#fbbf24">'+cur.conv+'%</div>';
+  h+='</div>';
+  h+='</div></div>';
+
+  // -- أفضل أسبوع --
+  if(bestWeek){
+    h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px">';
+    h+='<div style="font-size:13px;font-weight:800;color:var(--blue-ll);margin-bottom:10px">🏆 أفضل أسبوع في الشهر</div>';
+    h+='<div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:12px;padding:12px">';
+    var wkDate=new Date(bestWeek[0]+'T00:00:00');
+    var wkEnd=new Date(wkDate);wkEnd.setDate(wkDate.getDate()+6);
+    h+='<div style="font-size:12px;color:#93c5fd;font-weight:700;margin-bottom:8px">'+bestWeek[0]+' ← '+wkEnd.toISOString().slice(0,10)+'</div>';
+    h+='<div style="display:flex;gap:10px">';
+    h+='<div style="flex:1;text-align:center"><div style="font-size:18px;font-weight:900;color:#34d399">'+bestWeek[1].bought+'</div><div style="font-size:10px;color:var(--muted)">طلب</div></div>';
+    h+='<div style="flex:1;text-align:center"><div style="font-size:18px;font-weight:900;color:#a78bfa">'+(bestWeek[1].sales>0?bestWeek[1].sales+' ج':'—')+'</div><div style="font-size:10px;color:var(--muted)">مبيعات</div></div>';
+    h+='<div style="flex:1;text-align:center"><div style="font-size:18px;font-weight:900;color:#60a5fa">'+bestWeek[1].days.length+'</div><div style="font-size:10px;color:var(--muted)">يوم</div></div>';
+    h+='</div></div></div>';
+  }
+
+  // -- أفضل 5 عملاء --
+  if(top5.length){
+    h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px">';
+    h+='<div style="font-size:13px;font-weight:800;color:var(--blue-ll);margin-bottom:10px">⭐ أفضل 5 عملاء</div>';
+    var medals=['🥇','🥈','🥉','4️⃣','5️⃣'];
+    var maxS=top5[0][1].sales||1;
+    top5.forEach(function(e,i){
+      h+='<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">';
+      h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">';
+      h+='<span style="font-size:16px">'+medals[i]+'</span>';
+      h+='<span style="flex:1;font-size:13px;font-weight:700">'+esc(e[0])+'</span>';
+      h+='<span style="font-size:12px;font-weight:700;color:#a78bfa">'+(e[1].sales>0?e[1].sales+' ج':'')+'</span>';
+      h+='<span style="font-size:11px;color:#34d399">'+e[1].orders+' طلب</span>';
+      h+='</div>';
+      h+='<div style="height:4px;background:rgba(255,255,255,.07);border-radius:2px">';
+      h+='<div style="height:100%;width:'+Math.round(e[1].sales/maxS*100)+'%;background:linear-gradient(90deg,#3b82f6,#8b5cf6);border-radius:2px"></div>';
+      h+='</div></div>';
+    });
+    h+='</div>';
+  }
+
+  // -- أيام الذروة --
+  if(dayStats.length){
+    h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px">';
+    h+='<div style="font-size:13px;font-weight:800;color:var(--blue-ll);margin-bottom:10px">🔥 أيام الذروة</div>';
+    var maxDS=dayStats[0].sales||1;
+    dayStats.forEach(function(d,i){
+      if(!d.sales&&!d.bought)return;
+      h+='<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">';
+      h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">';
+      h+='<span style="font-size:11px;font-weight:800;color:#fbbf24">#'+(i+1)+'</span>';
+      h+='<span style="flex:1;font-size:12px;font-weight:700;color:#93c5fd">'+dateAr(d.date)+'</span>';
+      h+='<span style="font-size:12px;font-weight:700;color:#a78bfa">'+(d.sales>0?d.sales+' ج':'')+'</span>';
+      h+='<span style="font-size:11px;color:#34d399">'+d.bought+' طلب</span>';
+      h+='</div>';
+      h+='<div style="height:4px;background:rgba(255,255,255,.07);border-radius:2px">';
+      h+='<div style="height:100%;width:'+Math.round(d.sales/maxDS*100)+'%;background:linear-gradient(90deg,#f59e0b,#ef4444);border-radius:2px"></div>';
+      h+='</div></div>';
+    });
+    h+='</div>';
+  }
+
+  if(!monthDays.length){
+    h='<div class="empty"><div class="ico">📭</div><p>مفيش بيانات للشهر ده</p></div>';
+  }
+
+  el.innerHTML=h;
+}
+
+
+// ══════════════ CLIENT SEARCH ANALYSIS ══════════════
+function renderClientSearch(query){
+  var el=document.getElementById('client-content');
+  if(!el)return;
+  var q=query||el.dataset.query||'';
+
+  var h='';
+  // خانة البحث
+  h+='<div style="position:sticky;top:0;background:var(--bg);padding:4px 0 8px;z-index:10">';
+  h+='<div style="position:relative">';
+  h+='<span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none">🔍</span>';
+  h+='<input id="client-search-input" value="'+esc(q)+'" oninput="var v=this.value;document.getElementById(\'client-content\').dataset.query=v;renderClientSearch(v)" placeholder="ابحث باسم العميل..." style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:11px;color:var(--text);padding:10px 36px 10px 12px;font-family:\'Cairo\',sans-serif;font-size:13px;outline:none">';
+  h+='</div></div>';
+
+  if(!q.trim()){
+    h+='<div class="empty"><div class="ico">🔍</div><p>اكتب اسم العميل</p></div>';
+    el.innerHTML=h;
+    return;
+  }
+
+  // البحث في العملاء
+  var matches=customers.filter(function(c){return c.name.toLowerCase().indexOf(q.trim().toLowerCase())>=0;});
+  if(!matches.length){
+    h+='<div class="empty"><div class="ico">😕</div><p>مفيش عميل بالاسم ده</p></div>';
+    el.innerHTML=h;
+    return;
+  }
+
+  matches.forEach(function(c){
+    // جمع كل التفاعلات من السجل
+    var interactions=[];
+    historyData.forEach(function(day){
+      (day.items||[]).forEach(function(i){
+        if(i.id===c.id||i.name===c.name){
+          interactions.push({date:day.date,status:i.status||'none',amount:i.saleAmount||0,note:i.dayNote||''});
+        }
+      });
+    });
+    interactions.sort(function(a,b){return b.date>a.date?1:-1;});
+
+    // حساب الإحصائيات
+    var total=interactions.length;
+    var bought=interactions.filter(function(i){return i.status==='bought';}).length;
+    var rejected=interactions.filter(function(i){return i.status==='rejected';}).length;
+    var noans=interactions.filter(function(i){return i.status==='noans';}).length;
+    var interested=interactions.filter(function(i){return i.status==='interested';}).length;
+    var totalSales=interactions.reduce(function(s,i){return s+i.amount;},0);
+    var lastBuy=interactions.filter(function(i){return i.status==='bought';})[0];
+    var lastContact=interactions[0];
+    var buyRate=total?Math.round(bought/total*100):0;
+
+    h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px">';
+
+    // اسم العميل + بيانات أساسية
+    h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">';
+    h+='<div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;flex-shrink:0">'+esc(c.name.charAt(0))+'</div>';
+    h+='<div style="flex:1">';
+    h+='<div style="font-size:15px;font-weight:900;color:#fff">'+esc(c.name)+'</div>';
+    h+='<div style="font-size:11px;color:var(--muted);margin-top:2px">';
+    if(c.phone)h+=c.phone+' · ';
+    h+=c.type+' · فئة '+c.cat;
+    h+='</div></div>';
+    h+='<span style="background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.25);color:#60a5fa;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700">'+total+' تواصل</span>';
+    h+='</div>';
+
+    if(!total){
+      h+='<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">مفيش سجل لهذا العميل بعد</div>';
+      h+='</div>';
+      return;
+    }
+
+    // إحصائيات 4 خانات
+    h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px">';
+    h+='<div style="background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.15);border-radius:10px;padding:8px;text-align:center">';
+    h+='<div style="font-size:17px;font-weight:900;color:#34d399">'+bought+'</div><div style="font-size:9px;color:var(--muted)">اشترى</div></div>';
+    h+='<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.15);border-radius:10px;padding:8px;text-align:center">';
+    h+='<div style="font-size:17px;font-weight:900;color:#f87171">'+rejected+'</div><div style="font-size:9px;color:var(--muted)">رفض</div></div>';
+    h+='<div style="background:rgba(107,114,128,.08);border:1px solid rgba(107,114,128,.15);border-radius:10px;padding:8px;text-align:center">';
+    h+='<div style="font-size:17px;font-weight:900;color:#9ca3af">'+noans+'</div><div style="font-size:9px;color:var(--muted)">مش رد</div></div>';
+    h+='<div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.15);border-radius:10px;padding:8px;text-align:center">';
+    h+='<div style="font-size:17px;font-weight:900;color:#fbbf24">'+buyRate+'%</div><div style="font-size:9px;color:var(--muted)">تحويل</div></div>';
+    h+='</div>';
+
+    // مبيعات + آخر شراء
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">';
+    h+='<div style="background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.15);border-radius:10px;padding:10px;text-align:center">';
+    h+='<div style="font-size:10px;color:var(--muted);margin-bottom:3px">💰 إجمالي المبيعات</div>';
+    h+='<div style="font-size:18px;font-weight:900;color:#a78bfa">'+(totalSales>0?totalSales+' ج':'—')+'</div>';
+    h+='</div>';
+    h+='<div style="background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.15);border-radius:10px;padding:10px;text-align:center">';
+    h+='<div style="font-size:10px;color:var(--muted);margin-bottom:3px">🕐 آخر شراء</div>';
+    h+='<div style="font-size:13px;font-weight:800;color:#60a5fa">'+(lastBuy?dateAr(lastBuy.date):'—')+'</div>';
+    h+='</div></div>';
+
+    // شريط النسب البصري
+    h+='<div style="margin-bottom:14px">';
+    h+='<div style="font-size:11px;color:var(--muted);margin-bottom:6px">توزيع التفاعلات</div>';
+    h+='<div style="height:8px;border-radius:4px;overflow:hidden;display:flex;gap:1px">';
+    if(bought)h+='<div style="flex:'+bought+';background:#10b981;border-radius:4px 0 0 4px"></div>';
+    if(interested)h+='<div style="flex:'+interested+';background:#f59e0b"></div>';
+    if(rejected)h+='<div style="flex:'+rejected+';background:#ef4444"></div>';
+    if(noans)h+='<div style="flex:'+noans+';background:#4b5563;border-radius:0 4px 4px 0"></div>';
+    h+='</div>';
+    h+='<div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">';
+    if(bought)h+='<span style="font-size:9px;color:#34d399">■ اشترى '+bought+'</span>';
+    if(interested)h+='<span style="font-size:9px;color:#fbbf24">■ مهتم '+interested+'</span>';
+    if(rejected)h+='<span style="font-size:9px;color:#f87171">■ رفض '+rejected+'</span>';
+    if(noans)h+='<span style="font-size:9px;color:#6b7280">■ مش رد '+noans+'</span>';
+    h+='</div></div>';
+
+    // سجل التفاعلات
+    h+='<div style="font-size:12px;font-weight:800;color:var(--blue-ll);margin-bottom:8px">📋 سجل التفاعلات</div>';
+    var stLabel={bought:'🟢 اشترى',interested:'🟡 مهتم',rejected:'🔴 رفض',noans:'⏸ مش رد',none:'○ لم يتم'};
+    var stColor={bought:'#34d399',interested:'#fbbf24',rejected:'#f87171',noans:'#9ca3af',none:'var(--muted)'};
+    interactions.forEach(function(i){
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)">';
+      h+='<div style="font-size:11px;color:#93c5fd;font-weight:700;min-width:80px">'+dateAr(i.date)+'</div>';
+      h+='<div style="flex:1;font-size:11px;font-weight:700;color:'+(stColor[i.status]||'var(--muted)')+'">'+( stLabel[i.status]||i.status)+'</div>';
+      if(i.amount>0)h+='<div style="font-size:11px;color:#a78bfa;font-weight:700">'+i.amount+' ج</div>';
+      if(i.note)h+='<div style="font-size:10px;color:var(--purple-l)">📝 '+esc(i.note)+'</div>';
+      h+='</div>';
+    });
+
+    h+='</div>';
+  });
+
+  el.innerHTML=h;
+  // focus على البحث بعد render
+  var inp=document.getElementById('client-search-input');
+  if(inp){var v=inp.value;inp.focus();inp.setSelectionRange(v.length,v.length);}
+}
+
+
+// ══════════════ COVERAGE ANALYTICS ══════════════
+function renderCoverageAnalytics(){
+  var el=document.getElementById('coverage-content');
+  if(!el)return;
+
+  if(!coverageHistory.length){
+    el.innerHTML='<div class="empty"><div class="ico">🔄</div><p>مفيش تغطيات محفوظة لحد دلوقتي</p></div>';
+    return;
+  }
+
+  var selectedDate=el.dataset.date||'all';
+  var h='';
+
+  // ── سيليكتور التاريخ ──
+  var dates=[...new Set(coverageHistory.map(c=>c.date))].sort().reverse();
+  h+='<div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px">';
+  h+='<button onclick="document.getElementById(\'coverage-content\').dataset.date=\'all\';renderCoverageAnalytics()" style="white-space:nowrap;padding:5px 12px;border-radius:20px;border:1px solid '+(selectedDate==='all'?'var(--blue)':'var(--border)')+';background:'+(selectedDate==='all'?'var(--blue)':'transparent')+';color:'+(selectedDate==='all'?'#fff':'var(--muted)')+';font-family:\'Cairo\',sans-serif;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0">الكل</button>';
+  dates.forEach(function(d){
+    var active=d===selectedDate;
+    h+='<button onclick="document.getElementById(\'coverage-content\').dataset.date=\''+d+'\';renderCoverageAnalytics()" style="white-space:nowrap;padding:5px 12px;border-radius:20px;border:1px solid '+(active?'var(--blue)':'var(--border)')+';background:'+(active?'var(--blue)':'transparent')+';color:'+(active?'#fff':'var(--muted)')+';font-family:\'Cairo\',sans-serif;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0">'+dateAr(d)+'</button>';
+  });
+  h+='</div>';
+
+  var filtered=selectedDate==='all'?coverageHistory:coverageHistory.filter(function(c){return c.date===selectedDate;});
+
+  filtered.forEach(function(cov){
+    var covDate=cov.date;
+    var colleague=cov.colleague_name;
+    var covItems=cov.items||[];
+
+    // بيانات يوم نفس التاريخ من السجل العادي
+    var myDay=historyData.find(function(d){return d.date===covDate;});
+    var myItems=myDay?myDay.items||[]:[];
+
+    // حسابات التغطية
+    var covBought=covItems.filter(function(i){return i.status==='bought';}).length;
+    var covSales=covItems.reduce(function(s,i){return s+(i.saleAmount||0);},0);
+    var covTotal=covItems.length;
+
+    // حسابات بتاعتي
+    var myBought=myItems.filter(function(i){return i.status==='bought';}).length;
+    var mySales=myItems.reduce(function(s,i){return s+(i.status==='bought'?i.saleAmount||0:0);},0);
+    var myTotal=myItems.length;
+
+    // الإجمالي المجمع
+    var allBought=covBought+myBought;
+    var allSales=covSales+mySales;
+    var allTotal=covTotal+myTotal;
+    var allConv=allTotal?Math.round(allBought/allTotal*100):0;
+
+    h+='<div style="background:var(--card);border:1px solid rgba(217,119,6,.25);border-radius:14px;padding:14px">';
+    h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
+    h+='<div style="font-size:13px;font-weight:800;color:#93c5fd">'+dateAr(covDate)+'</div>';
+    h+='<span style="background:rgba(217,119,6,.15);border:1px solid rgba(217,119,6,.3);color:#fbbf24;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">🔄 تغطية: '+colleague+'</span>';
+    h+='</div>';
+
+    // ── الإجمالي المجمع ──
+    h+='<div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:8px">📊 إجمالي اليوم (أنت + '+colleague+')</div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px">';
+    h+='<div style="background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.15);border-radius:10px;padding:8px;text-align:center"><div style="font-size:16px;font-weight:900;color:#60a5fa">'+allTotal+'</div><div style="font-size:9px;color:var(--muted)">إجمالي</div></div>';
+    h+='<div style="background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.15);border-radius:10px;padding:8px;text-align:center"><div style="font-size:16px;font-weight:900;color:#34d399">'+allBought+'</div><div style="font-size:9px;color:var(--muted)">اشترى</div></div>';
+    h+='<div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.15);border-radius:10px;padding:8px;text-align:center"><div style="font-size:16px;font-weight:900;color:#fbbf24">'+allConv+'%</div><div style="font-size:9px;color:var(--muted)">تحويل</div></div>';
+    h+='<div style="background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.15);border-radius:10px;padding:8px;text-align:center"><div style="font-size:16px;font-weight:900;color:#a78bfa">'+(allSales>0?allSales+' ج':'—')+'</div><div style="font-size:9px;color:var(--muted)">مبيعات</div></div>';
+    h+='</div>';
+
+    // ── مقارنة منفصلة ──
+    h+='<div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:8px">⚖️ مقارنة منفصلة</div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+
+    // أنا
+    h+='<div style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.2);border-radius:12px;padding:10px">';
+    h+='<div style="font-size:11px;font-weight:800;color:#60a5fa;margin-bottom:8px;text-align:center">👤 أنا</div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;text-align:center">';
+    h+='<div><div style="font-size:14px;font-weight:900;color:#34d399">'+myBought+'</div><div style="font-size:9px;color:var(--muted)">طلب</div></div>';
+    h+='<div><div style="font-size:14px;font-weight:900;color:#fbbf24">'+( myTotal?Math.round(myBought/myTotal*100):0)+'%</div><div style="font-size:9px;color:var(--muted)">تحويل</div></div>';
+    if(mySales>0)h+='<div style="grid-column:1/-1"><div style="font-size:13px;font-weight:900;color:#a78bfa">'+mySales+' ج</div><div style="font-size:9px;color:var(--muted)">مبيعات</div></div>';
+    h+='</div></div>';
+
+    // الزميل
+    h+='<div style="background:rgba(217,119,6,.06);border:1px solid rgba(217,119,6,.2);border-radius:12px;padding:10px">';
+    h+='<div style="font-size:11px;font-weight:800;color:#fbbf24;margin-bottom:8px;text-align:center">🔄 '+colleague+'</div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;text-align:center">';
+    h+='<div><div style="font-size:14px;font-weight:900;color:#34d399">'+covBought+'</div><div style="font-size:9px;color:var(--muted)">طلب</div></div>';
+    h+='<div><div style="font-size:14px;font-weight:900;color:#fbbf24">'+(covTotal?Math.round(covBought/covTotal*100):0)+'%</div><div style="font-size:9px;color:var(--muted)">تحويل</div></div>';
+    if(covSales>0)h+='<div style="grid-column:1/-1"><div style="font-size:13px;font-weight:900;color:#a78bfa">'+covSales+' ج</div><div style="font-size:9px;color:var(--muted)">مبيعات</div></div>';
+    h+='</div></div>';
+    h+='</div>';
+
+    // ── سجل عملاء التغطية ──
+    if(covItems.length){
+      h+='<div style="margin-top:12px">';
+      h+='<div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:6px">📋 عملاء '+colleague+'</div>';
+      covItems.forEach(function(i){
+        var st=i.status||'none';
+        var stLabel={bought:'🟢 اشترى',interested:'🟡 مهتم',rejected:'🔴 رفض',noans:'⏸ مش رد',none:'○ لم يتم'}[st]||st;
+        var dotColor={bought:'#10b981',interested:'#f59e0b',rejected:'#ef4444',noans:'#4b5563',none:'#374151'}[st]||'#374151';
+        h+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.03)">';
+        h+='<div style="width:7px;height:7px;border-radius:50%;background:'+dotColor+';flex-shrink:0"></div>';
+        h+='<div style="flex:1;font-size:12px"><b>'+esc(i.name)+'</b> <span style="color:var(--muted);font-size:10px">— '+i.time+' — '+stLabel+(i.saleAmount>0?' — 💰 '+i.saleAmount+' ج':'')+'</span></div>';
+        h+='</div>';
+      });
+      h+='</div>';
+    }
+
+    h+='</div>';
+  });
+
+  el.innerHTML=h;
+}
+
+
+// ══════════════ CATS PAGE ══════════════
+function renderCats(){
+  const el=document.getElementById('cats-content');
+  const CC={A:'#f59e0b',B:'#3b82f6',C:'#6b7280'},CL={A:'⭐ فئة A — أولوية قصوى',B:'🔵 فئة B — أولوية عادية',C:'⚫ فئة C — أقل أولوية'},CB={A:'rgba(245,158,11,.08)',B:'rgba(59,130,246,.06)',C:'rgba(107,114,128,.04)'};
+  let html='';
+  ['A','B','C'].forEach(cat=>{
+    const group=customers.filter(c=>(c.cat||'B')===cat).sort((a,b)=>timeToMin(a.time)-timeToMin(b.time));
+    const boughtToday=group.filter(c=>getStatus(c.id)==='bought').length;
+    html+=`<div style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:${CB[cat]};border:1px solid ${CC[cat]}44;border-radius:${group.length?'12px 12px 0 0':'12px'}">
+        <div style="font-size:14px;font-weight:900;color:${CC[cat]}">${CL[cat]}</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:11px;color:${CC[cat]};border:1px solid ${CC[cat]}44;border-radius:20px;padding:2px 10px;font-weight:700">${group.length} عميل</span>
+          <span style="font-size:11px;color:#34d399;font-weight:700">🛒 ${boughtToday}/${group.length}</span>
+        </div>
+      </div>`;
+    if(!group.length){
+      html+=`<div style="background:var(--card);border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;padding:14px;text-align:center;color:var(--muted);font-size:12px">مفيش عملاء</div>`;
+    }else group.forEach((c,i)=>{
+      const st=getStatus(c.id),scfg=STATUS_CFG[st]||STATUS_CFG.none,isLast=i===group.length-1;
+      const dn=(todayData.dayNotes||{})[c.id]||'';
+      const sale=(todayData.saleAmounts||{})[c.id];
+      html+=`<div style="background:${isDone(c.id)?'rgba(255,255,255,.02)':CB[cat]};border:1px solid ${CC[cat]}33;border-top:none;border-radius:${isLast?'0 0 12px 12px':'0'};padding:10px 14px;display:flex;align-items:center;gap:10px;opacity:${isDone(c.id)&&st!=='bought'?.5:1}">
+        <button onclick="openStatus('${c.id}');setTimeout(renderCats,500)" style="width:32px;height:32px;border-radius:50%;border:none;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:${scfg.cls==='s-bought'?'linear-gradient(135deg,#10b981,#059669)':scfg.cls==='s-interested'?'linear-gradient(135deg,#f59e0b,#d97706)':scfg.cls==='s-rejected'?'linear-gradient(135deg,#ef4444,#dc2626)':'rgba(255,255,255,.07)'};color:${isDone(c.id)?'#fff':'var(--muted)'}">${scfg.btnIcon}</button>
+        <div style="flex:1;min-width:0;cursor:pointer" onclick="openProfile('${c.id}')">
+          <div style="font-size:13px;font-weight:700;color:${isDone(c.id)&&st!=='bought'?'var(--muted)':CC[cat]};text-decoration:${isDone(c.id)&&st!=='bought'?'line-through':'none'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.name)}</div>
+          <div style="display:flex;gap:7px;margin-top:3px;flex-wrap:wrap">
+            <span style="font-size:10px;color:var(--muted)">🕐 ${c.time}</span>
+            ${c.phone?`<span style="font-size:10px;color:var(--muted)">📱 ${esc(c.phone)}</span>`:''}
+            <span style="font-size:10px;color:${scfg.dotCls==='bought'?'#34d399':scfg.dotCls==='interested'?'#fbbf24':scfg.dotCls==='rejected'?'#f87171':'#9ca3af'}">${scfg.icon} ${scfg.label}</span>
+            ${sale&&st==='bought'?`<span style="font-size:10px;color:#a78bfa;font-weight:700">💰 ${sale} ج</span>`:''}
+          </div>
+          ${dn?`<div style="font-size:10px;color:#a78bfa;margin-top:2px">📝 ${esc(dn)}</div>`:(c.note?`<div style="font-size:10px;color:var(--muted2);margin-top:2px">💬 ${esc(c.note)}</div>`:'')}
+        </div>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+
+// ══════════════ ALERTS ══════════════
+function renderAlerts(){
+  const el=document.getElementById('alerts-content');
+  if(!historyData.length){el.innerHTML='<div class="empty"><div class="ico">🔔</div><p>مفيش بيانات كافية</p></div>';return;}
+  const alerts=[],today=dateStr();
+
+  // تنبيهات مواعيد اليوم — بس خلال الشيفت (8م لـ 5ص)
+  const nowH2=new Date().getHours();
+  const inShift2=nowH2>=20||nowH2<5;
+  const nowMin=timeToMin(getCurrentTimeStr());
+  const shiftNow=nowMin<300?nowMin+1440:nowMin;
+  customers.forEach(c=>{
+    if(inShift2&&getStatus(c.id)==='none'&&c.time){
+      const ct=timeToMin(c.time),shiftCt=ct<300?ct+1440:ct;
+      if(shiftNow>=shiftCt)alerts.push({c,type:'danger',msg:`موعد التواصل ${c.time} فات ولم يتم التواصل بعد`});
+    }else if(getStatus(c.id)==='interested'){
+      alerts.push({c,type:'warn',msg:'مهتم — تأكد من المتابعة'});
+    }
+  });
+
+  // تنبيهات من السجل
+  customers.forEach(c=>{
+    const hist=historyData.filter(d=>d.date<today&&(d.items||[]).some(i=>i.id===c.id));
+    if(!hist.length)return;
+    const last5=hist.slice(0,5);
+    const boughtCount=last5.filter(d=>(d.items||[]).find(i=>i.id===c.id&&i.status==='bought')).length;
+    const rate=Math.round(boughtCount/last5.length*100);
+    if(rate===0&&last5.length>=3)alerts.push({c,type:'danger',msg:`لم يشترِ في آخر ${last5.length} أيام`});
+    else if(rate===100&&last5.length>=3)alerts.push({c,type:'ok',msg:'ممتاز! اشترى في كل الأيام الأخيرة'});
+  });
+
+  if(!alerts.length){el.innerHTML='<div class="empty"><div class="ico">✅</div><p>كل العملاء بيانات طبيعية</p></div>';return;}
+  alerts.sort((a,b)=>({danger:0,warn:1,ok:2}[a.type]-{danger:0,warn:1,ok:2}[b.type]));
+  el.innerHTML=alerts.map(({c,type,msg})=>`
+    <div class="alert-card ${type}">
+      <div class="alert-icon">${type==='danger'?'🚨':type==='warn'?'⚠️':'🌟'}</div>
+      <div class="alert-body"><div class="alert-name">${esc(c.name)}</div><div class="alert-msg">${msg}</div></div>
+    </div>`).join('');
+}
+
+// ══════════════ PROFILE ══════════════
+function openProfile(id){
+  const c=customers.find(x=>x.id===id);if(!c)return;
+  const hist=historyData.filter(d=>(d.items||[]).some(i=>i.id===id));
+  const totalDays=hist.length,doneDays=hist.filter(d=>(d.items||[]).find(i=>i.id===id&&i.status==='bought')).length;
+  const rate=totalDays?Math.round(doneDays/totalDays*100):0;
+  const totalSales=hist.reduce((s,d)=>{const item=(d.items||[]).find(i=>i.id===id);return s+(item&&item.status==='bought'?item.saleAmount||0:0);},0);
+  const dc={0:0,1:0,2:0,3:0,4:0,5:0,6:0};
+  hist.forEach(d=>{if((d.items||[]).find(i=>i.id===id&&i.status==='bought'))dc[dayOfWeek(d.date)]++;});
+  const maxD=Math.max(...Object.values(dc),1);
+  const CC={A:'#fbbf24',B:'#60a5fa',C:'#9ca3af'},cat=c.cat||'B';
+  document.getElementById('profile-content').innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div>
+        <div style="font-size:18px;font-weight:900;color:${CC[cat]}">${esc(c.name)}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px">${c.phone||'بدون رقم'} · ${c.type} · فئة ${cat}</div>
+      </div>
+      <button onclick="openEdit('${c.id}');document.getElementById('profile-modal').style.display='none'" style="background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.3);color:#60a5fa;border-radius:9px;padding:7px 12px;font-family:inherit;font-size:12px;cursor:pointer">✏️ تعديل</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <div class="prof-stat"><div class="pnum" style="color:#34d399">${doneDays}</div><div class="plbl">أيام اشترى</div></div>
+      <div class="prof-stat"><div class="pnum" style="color:${rate>=70?'#34d399':rate>=40?'#f59e0b':'#f87171'}">${rate}%</div><div class="plbl">معدل الشراء</div></div>
+      <div class="prof-stat"><div class="pnum" style="color:#a78bfa">${totalSales>0?totalSales:'—'}</div><div class="plbl">إجمالي ج</div></div>
+    </div>
+    ${c.note?`<div style="background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.2);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#c4b5fd">📌 ${esc(c.note)}</div>`:''}
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:700">أفضل أيام الشراء:</div>
+    <div style="margin-bottom:16px">${DAYS_AR.map((_,i)=>{const cnt=dc[i]||0,cls=cnt===0?'cold':cnt>=maxD*.6?'hot':'neutral';return `<div class="day-chip ${cls}">${DAYS_SHORT[i]}</div>`;}).join('')}</div>
+    <button onclick="document.getElementById('profile-modal').style.display='none'" class="cancel-btn">إغلاق</button>`;
+  document.getElementById('profile-modal').style.display='flex';
+}
+
+// ══════════════ CONFIRM / TOAST / NAV ══════════════
+function showConfirm(ico,title,msg,okTxt,okStyle,cb){
+  document.getElementById('conf-ico').textContent=ico;
+  document.getElementById('conf-title').textContent=title;
+  document.getElementById('conf-msg').textContent=msg;
+  const ok=document.getElementById('conf-ok');ok.textContent=okTxt;ok.className='conf-ok '+okStyle;
+  pendingAction=cb;
+  document.getElementById('conf-overlay').style.display='block';
+  document.getElementById('conf-box').style.display='block';
+}
+function closeConfirm(){document.getElementById('conf-overlay').style.display='none';document.getElementById('conf-box').style.display='none';pendingAction=null;}
+function doConfirm(){if(pendingAction){pendingAction();closeConfirm();}}
+
+function showToast(msg){
+  let t=document.getElementById('toast');
+  if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a2e4a;color:#e8edf5;border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:12px 20px;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;z-index:9999;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:320px;transition:opacity .3s;pointer-events:none';document.body.appendChild(t);}
+  t.textContent=msg;t.style.opacity='1';clearTimeout(t._timer);t._timer=setTimeout(()=>t.style.opacity='0',3000);
+}
+
+function showPage(p){
+  document.querySelectorAll('.ntab').forEach(t=>t.classList.toggle('active',t.dataset.page===p));
+  document.querySelectorAll('.page').forEach(pg=>pg.classList.toggle('active',pg.id==='page-'+p));
+  if(p==='history')renderHistory();
+  if(p==='analytics')renderAnalytics();
+  if(p==='cats')renderCats();
+  if(p==='alerts')renderAlerts();
+}
+
+// INIT TIME SELECT
+const tsel=document.getElementById('f-time');
+[
+ '8:00 م','8:30 م','9:00 م','9:30 م','10:00 م','10:30 م','11:00 م','11:30 م',
+ '12:00 ص','12:30 ص','1:00 ص','1:30 ص','2:00 ص','2:30 ص','3:00 ص','3:30 ص',
+ '4:00 ص','4:30 ص','5:00 ص'
+].forEach(s=>{const o=document.createElement('option');o.value=o.textContent=s;tsel.appendChild(o);});
+tsel.value='9:00 م';
+</script>
+<!-- ADD PAST DAY MODAL -->
+<div class="overlay" id="pastday-modal" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <h2>📅 إضافة يوم قديم للسجل</h2>
+    <div class="field">
+      <label>التاريخ</label>
+      <input type="date" id="pd-date"/>
+    </div>
+    <div class="field">
+      <label>ملاحظة الشيفت (اختياري)</label>
+      <input id="pd-shiftnote" placeholder="ملاحظة عامة على اليوم..."/>
+    </div>
+    <div id="pd-customers" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
+    <button class="submit-btn" onclick="savePastDay()">✔ حفظ اليوم</button>
+    <button class="cancel-btn" onclick="document.getElementById('pastday-modal').style.display='none'">إلغاء</button>
+  </div>
+</div>
+
+<script>
+function openAddPastDay(){
+  // set default date to yesterday
+  const y=new Date();y.setDate(y.getDate()-1);
+  document.getElementById('pd-date').value=dateStr(y);
+  document.getElementById('pd-shiftnote').value='';
+  // render customers list
+  const el=document.getElementById('pd-customers');
+  if(!customers.length){el.innerHTML='<div style="color:var(--muted);font-size:12px;text-align:center">مفيش عملاء مضافين بعد</div>';document.getElementById('pastday-modal').style.display='flex';return;}
+  el.innerHTML=customers.map(c=>`
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--blue-ll)">${esc(c.name)}</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:8px">
+        <button onclick="pdPickStatus('${c.id}','bought')"    id="pd-s-bought-${c.id}"    class="sp-btn sp-bought"    >🟢 اشترى</button>
+        <button onclick="pdPickStatus('${c.id}','interested')" id="pd-s-interested-${c.id}" class="sp-btn sp-interested">🟡 مهتم</button>
+        <button onclick="pdPickStatus('${c.id}','rejected')"  id="pd-s-rejected-${c.id}"  class="sp-btn sp-rejected" >🔴 رفض</button>
+        <button onclick="pdPickStatus('${c.id}','noans')"     id="pd-s-noans-${c.id}"     class="sp-btn sp-noans"   >⏸ مش رد</button>
+      </div>
+      <div id="pd-sale-wrap-${c.id}" style="display:none">
+        <input type="number" id="pd-sale-${c.id}" placeholder="💰 قيمة الطلب (جنيه)" min="0"
+          style="width:100%;background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:9px 12px;font-family:inherit;font-size:13px;outline:none"/>
+      </div>
+    </div>`).join('');
+  // init state
+  window._pdStatus={};
+  customers.forEach(c=>window._pdStatus[c.id]='none');
+  document.getElementById('pastday-modal').style.display='flex';
+}
+
+function pdPickStatus(id,s){
+  window._pdStatus=window._pdStatus||{};
+  window._pdStatus[id]=s;
+  ['bought','interested','rejected','noans'].forEach(st=>{
+    const btn=document.getElementById('pd-s-'+st+'-'+id);
+    if(btn)btn.classList.toggle('active',st===s);
+  });
+  const wrap=document.getElementById('pd-sale-wrap-'+id);
+  if(wrap)wrap.style.display=s==='bought'?'block':'none';
+}
+
+async function savePastDay(){
+  const date=document.getElementById('pd-date').value;
+  if(!date){showToast('❌ اختار التاريخ!');return;}
+  if(date>=dateStr()){showToast('❌ التاريخ لازم يكون قبل النهارده!');return;}
+  const shiftNote=document.getElementById('pd-shiftnote').value.trim();
+  const items=customers.map(c=>({
+    id:c.id, name:c.name, phone:c.phone||'', type:c.type, time:c.time, cat:c.cat||'B',
+    status:(_pdStatus[c.id]||'none'),
+    note:c.note||'', dayNote:'',
+    saleAmount:_pdStatus[c.id]==='bought'?(parseFloat(document.getElementById('pd-sale-'+c.id)?.value)||0):0
+  }));
+  const snap={date,shiftNote,items};
+  const btn=document.querySelector('#pastday-modal .submit-btn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ جاري الحفظ...';}
+  const ok=await saveHistoryToDB(snap);
+  if(btn){btn.disabled=false;btn.textContent='✔ حفظ اليوم';}
+  if(ok){
+    const idx=historyData.findIndex(h=>h.date===date);
+    if(idx!==-1)historyData[idx]=snap;else{historyData.push(snap);historyData.sort((a,b)=>b.date.localeCompare(a.date));}
+    document.getElementById('pastday-modal').style.display='none';
+    renderHistory();
+    showToast('✅ تم حفظ اليوم في السجل');
+  }else{
+    showToast('❌ فشل الحفظ — حاول تاني');
+  }
+}
+
+
+// ══ TOGGLE PANEL ══
+let panelOpen = true;
+function togglePanel(){
+  panelOpen = !panelOpen;
+  const panel = document.getElementById('top-panel');
+  const arrow = document.getElementById('toggle-arrow');
+  if(panelOpen){
+    panel.style.maxHeight = panel.scrollHeight + 'px';
+    panel.classList.remove('collapsed');
+    panel.classList.add('expanded');
+    arrow.classList.add('up');
+    arrow.textContent = '▲';
+  } else {
+    panel.style.maxHeight = '0';
+    panel.classList.add('collapsed');
+    panel.classList.remove('expanded');
+    arrow.classList.remove('up');
+    arrow.textContent = '▼';
+  }
+}
+// Set initial max-height
+window.addEventListener('load', ()=>{
+  const panel = document.getElementById('top-panel');
+  if(panel) panel.style.maxHeight = panel.scrollHeight + 'px';
+});
+
+
+// ══════════════ PERIODS (أسبوع / شهر) ══════════════
+async function askClosePeriod(type){
+  const label=type==='week'?'الأسبوع':'الشهر';
+  const confirmed=confirm(`هتغلق ${label} دلوقتي؟\nهيتحفظ ملخص كامل للفترة دي.`);
+  if(!confirmed)return;
+  await closePeriod(type);
+}
+
+async function closePeriod(type){
+  // تحديد تاريخ البداية
+  const existing=periodsData.filter(p=>p.type===type).sort((a,b)=>b.end_date>a.end_date?1:-1);
+  const lastEnd=existing.length?existing[0].end_date:null;
+  const startDate=lastEnd?addDays(lastEnd,1):historyData.length?[...historyData].sort((a,b)=>a.date>b.date?1:-1)[0].date:dateStr();
+  const endDate=dateStr();
+
+  if(startDate>endDate){showToast('⚠️ مفيش أيام جديدة من آخر إغلاق');return;}
+
+  // جمع البيانات للفترة
+  const periodDays=historyData.filter(d=>d.date>=startDate&&d.date<=endDate);
+  if(!periodDays.length){showToast('⚠️ مفيش بيانات في الفترة دي');return;}
+
+  const totalBought=periodDays.reduce((s,d)=>s+(d.items||[]).filter(i=>i.status==='bought').length,0);
+  const totalSales=periodDays.reduce((s,d)=>s+(d.items||[]).reduce((ss,i)=>ss+(i.status==='bought'?i.saleAmount||0:0),0),0);
+  const totalContacts=periodDays.reduce((s,d)=>s+(d.items||[]).length,0);
+  const convRate=totalContacts?Math.round(totalBought/totalContacts*100):0;
+
+  // أفضل عميل في الفترة
+  const clientSales={};
+  periodDays.forEach(d=>(d.items||[]).forEach(i=>{if(i.status==='bought'){clientSales[i.id]=(clientSales[i.id]||0)+(i.saleAmount||0);};}));
+  const bestClientId=Object.entries(clientSales).sort((a,b)=>b[1]-a[1])[0]?.[0];
+  const bestClientName=customers.find(c=>c.id===bestClientId)?.name||'—';
+
+  const summary={
+    days:periodDays.length,
+    totalBought,totalSales,totalContacts,convRate,
+    bestClient:bestClientName,
+    bestClientSales:clientSales[bestClientId]||0,
+    dailySales:periodDays.map(d=>({date:d.date,sales:(d.items||[]).reduce((s,i)=>s+(i.status==='bought'?i.saleAmount||0:0),0),bought:(d.items||[]).filter(i=>i.status==='bought').length}))
+  };
+
+  const periodId = UID+'_'+type+'_'+startDate+'_'+endDate;
+  try{
+    await fsdb.collection('periods').doc(periodId).set({
+      id:periodId,user_id:UID,type,start_date:startDate,end_date:endDate,summary
+    });
+  }catch(e){showToast('❌ خطأ في الحفظ');console.error(e);return;}
+
+  // reload
+  const pSnap = await fsdb.collection('periods').where('user_id','==',UID).orderBy('start_date','desc').get();
+  periodsData = pSnap.docs.map(d=>d.data());
+
+  const label=type==='week'?'الأسبوع':'الشهر';
+  showToast(`✅ تم إغلاق ${label} — ${totalBought} طلب، ${totalSales>0?totalSales+' ج':''}`);
+  if(currentPage==='analytics')renderAnalytics();
+}
+
+function addDays(dateStr2,n){
+  const d=new Date(dateStr2+'T00:00:00');
+  d.setDate(d.getDate()+n);
+  return d.toISOString().slice(0,10);
+}
+
+// ══════════════ COVERAGE ══════════════
+
+function loadCoverage(){
+  try{ colleagues=JSON.parse(localStorage.getItem(COV_COLLEAGUES_KEY())||'{}'); }catch(e){ colleagues={}; }
+  try{ covToday=JSON.parse(localStorage.getItem(COV_TODAY_KEY())||'{}'); }catch(e){ covToday={}; }
+  if(!covToday.active) covToday={active:false,colleague:'',statuses:{},amounts:{},notes:{}};
+  updateCovBar();
+}
+
+function saveColleagues(){ localStorage.setItem(COV_COLLEAGUES_KEY(), JSON.stringify(colleagues)); }
+function saveCovToday(){ localStorage.setItem(COV_TODAY_KEY(), JSON.stringify(covToday)); }
+
+function updateCovBar(){
+  const bar=document.getElementById('cov-bar');
+  const info=document.getElementById('cov-bar-info');
+  const mainBtn=document.getElementById('cov-main-btn');
+  if(covToday.active){
+    const cl=colleagues[covToday.colleague]||[];
+    const bought=Object.values(covToday.statuses).filter(s=>s==='bought').length;
+    bar.style.display='flex';
+    info.textContent='تغطية: '+covToday.colleague+' — '+cl.length+' عميل | '+bought+' اشترى';
+    mainBtn.textContent='👥 إدارة عملاء '+covToday.colleague;
+    // أضف فلتر تغطية لو مش موجود
+    if(!document.getElementById('fbtn-cov')){
+      const f=document.createElement('button');
+      f.className='fbtn';f.id='fbtn-cov';f.dataset.f='تغطية';
+      f.innerHTML='🔄 تغطية';f.style.color='#fbbf24';
+      f.onclick=function(){setFilter(this);};
+      document.querySelector('.filters').appendChild(f);
+    }
+  } else {
+    bar.style.display='none';
+    mainBtn.textContent='🔄 يوم تغطية';
+    const fb=document.getElementById('fbtn-cov');
+    if(fb) fb.remove();
+  }
+}
+
+// فتح modal اختيار الزميل
+function openCoverageModal(){
+  if(covToday.active){
+    // لو التغطية شغالة، افتح إدارة العملاء
+    openManageColleague(covToday.colleague); return;
+  }
+  document.getElementById('cov-colleague-input').value='';
+  renderColleagueList();
+  document.getElementById('cov-modal').style.display='flex';
+}
+
+function renderColleagueList(){
+  const q=(document.getElementById('cov-colleague-input').value||'').trim();
+  const names=Object.keys(colleagues).filter(n=>!q||n.includes(q));
+  const el=document.getElementById('colleague-list');
+  if(!names.length){
+    el.innerHTML=q?`<div style="font-size:12px;color:var(--muted);text-align:center">اضغط "ابدأ التغطية" لإنشاء ملف جديد لـ "${q}"</div>`:'<div style="font-size:12px;color:var(--muted);text-align:center">مفيش زملاء مسجلين بعد</div>';
+    return;
+  }
+  el.innerHTML=names.map(n=>{
+    const cnt=(colleagues[n]||[]).length;
+    return `<div onclick="selectColleague('${n}')" style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-weight:700;color:#fbbf24">🔄 ${esc(n)}</span>
+      <span style="font-size:11px;color:var(--muted)">${cnt} عميل</span>
+    </div>`;
+  }).join('');
+}
+
+function selectColleague(name){
+  document.getElementById('cov-colleague-input').value=name;
+}
+
+function startCoverage(){
+  const name=document.getElementById('cov-colleague-input').value.trim();
+  if(!name){showToast('⚠️ اكتب اسم الزميل');return;}
+  // لو مش عنده عملاء بعد، افتح إدارة العملاء أول
+  if(!colleagues[name]) colleagues[name]=[];
+  saveColleagues();
+  covToday={active:true,colleague:name,statuses:{},amounts:{},notes:{}};
+  saveCovToday();
+  document.getElementById('cov-modal').style.display='none';
+  updateCovBar();
+  render();
+  showToast('✅ تغطية: '+name+' — '+(colleagues[name].length)+' عميل');
+  // لو مفيش عملاء مسجلين، افتح الإدارة
+  if(!colleagues[name].length) setTimeout(()=>openManageColleague(name),300);
+}
+
+async function saveCoverageToFirebase(){
+  if(!covToday.active||!covToday.colleague)return;
+  const colleagues_list=colleagues[covToday.colleague]||[];
+  const items=colleagues_list.map(c=>({
+    id:c.id,name:c.name,phone:c.phone||'',time:c.time||'',type:c.type||'فون',cat:c.cat||'B',
+    status:covToday.statuses[c.id]||'none',
+    saleAmount:covToday.amounts[c.id]||0,
+    note:covToday.notes[c.id]||''
+  }));
+  const bought=items.filter(i=>i.status==='bought').length;
+  const sales=items.reduce((s,i)=>s+(i.saleAmount||0),0);
+  const summary={total:items.length,bought,sales,conv:items.length?Math.round(bought/items.length*100):0};
+  const today=dateStr();
+  const docId=UID+'_'+today+'_'+covToday.colleague;
+  try{
+    await fsdb.collection('coverage_history').doc(docId).set({
+      user_id:UID,date:today,colleague_name:covToday.colleague,items,summary
+    },{merge:true});
+    // reload
+    const snap=await fsdb.collection('coverage_history').where('user_id','==',UID).orderBy('date','desc').limit(60).get();
+    coverageHistory=snap.docs.map(d=>d.data());
+  }catch(e){console.error(e);}
+}
+
+function endCoverage(){
+  showConfirm('🔄','إنهاء التغطية؟','سيتم إنهاء وضع التغطية. البيانات المسجلة ستُحفظ في السجل.','إنهاء','gold',async()=>{
+    await saveCoverageToFirebase();
+    covToday={active:false,colleague:'',statuses:{},amounts:{},notes:{}};
+    saveCovToday();
+    updateCovBar();
+    if(activeFilter==='تغطية'){activeFilter='الكل';document.querySelectorAll('.fbtn').forEach(b=>b.classList.toggle('active',b.dataset.f==='الكل'));}
+    render();
+    showToast('✅ تم حفظ التغطية وإنهاؤها');
+  });
+}
+
+// إدارة عملاء الزميل الثابتين
+function openManageColleague(name){
+  document.getElementById('cov-manage-title').textContent='👥 عملاء '+name;
+  renderManageList(name);
+  document.getElementById('cov-manage-modal').style.display='flex';
+}
+
+function renderManageList(name){
+  const list=colleagues[name]||[];
+  const el=document.getElementById('cov-manage-list');
+  if(!list.length){el.innerHTML='<div style="text-align:center;color:var(--muted);font-size:12px;padding:16px">لا يوجد عملاء — اضغط ➕ لإضافة</div>';return;}
+  el.innerHTML=list.map((c,i)=>`
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px">
+      <span style="background:rgba(245,158,11,.2);color:#fbbf24;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:900">${c.cat||'B'}</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700">${esc(c.name)}</div>
+        <div style="font-size:10px;color:var(--muted)">${c.time} • ${c.type}${c.phone?' • '+c.phone:''}</div>
+      </div>
+      <div style="display:flex;gap:4px">
+        <button onclick="editColleagueClient('${name}',${i})" style="background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.25);color:#60a5fa;border-radius:7px;padding:3px 8px;font-family:inherit;cursor:pointer;font-size:12px">✏️</button>
+        <button onclick="deleteColleagueClient('${name}',${i})" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:#f87171;border-radius:7px;padding:3px 8px;font-family:inherit;cursor:pointer;font-size:12px">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+let editingColleague='';
+function openAddClientDuringCoverage(){
+  // نفس فانكشن إضافة عميل للزميل بس من شريط التغطية مباشرة
+  const colleague=covToday.colleague;
+  if(!colleague){showToast('⚠️ مفيش تغطية نشطة');return;}
+  editingColleague=colleague;
+  document.getElementById('cov-add-client-title').textContent='➕ إضافة عميل لـ '+colleague;
+  document.getElementById('cov-cl-name').value='';
+  document.getElementById('cov-cl-phone').value='';
+  document.getElementById('cov-cl-cat').value='B';
+  const sel=document.getElementById('cov-cl-time');
+  if(!sel.options.length){
+    const src=document.getElementById('f-time');
+    if(src)Array.from(src.options).forEach(o=>{const n=document.createElement('option');n.value=o.value;n.textContent=o.textContent;sel.appendChild(n);});
+  }
+  sel.value='9:00 ص';
+  document.getElementById('cov-add-client-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('cov-cl-name').focus(),150);
+}
+
+function openAddColleagueClient(){
+  editingColleague=document.getElementById('cov-manage-title').textContent.replace('👥 عملاء ','');
+  document.getElementById('cov-add-client-title').textContent='➕ إضافة عميل لـ '+editingColleague;
+  document.getElementById('cov-cl-name').value='';
+  document.getElementById('cov-cl-phone').value='';
+  document.getElementById('cov-cl-cat').value='B';
+  // انسخ خيارات الوقت
+  const sel=document.getElementById('cov-cl-time');
+  if(!sel.options.length){ const src=document.getElementById('f-time'); if(src) sel.innerHTML=src.innerHTML; }
+  document.getElementById('cov-add-client-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('cov-cl-name').focus(),150);
+}
+
+function saveColleagueClient(){
+  const name=document.getElementById('cov-cl-name').value.trim();
+  if(!name){showToast('⚠️ اكتب اسم الصيدلية');return;}
+  if(!colleagues[editingColleague]) colleagues[editingColleague]=[];
+  const clientData={
+    id: editingColleagueIdx>=0?(colleagues[editingColleague][editingColleagueIdx]?.id||'c_'+Date.now()):'c_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    name, phone:document.getElementById('cov-cl-phone').value.trim(),
+    time:document.getElementById('cov-cl-time').value,
+    type:document.getElementById('cov-cl-type').value,
+    cat:document.getElementById('cov-cl-cat').value
+  };
+  if(editingColleagueIdx>=0){
+    colleagues[editingColleague][editingColleagueIdx]=clientData;
+    editingColleagueIdx=-1;
+  } else {
+    colleagues[editingColleague].push(clientData);
+  }
+  saveColleagues();
+  document.getElementById('cov-add-client-modal').style.display='none';
+  renderManageList(editingColleague);
+  // لو التغطية نشطة — نعمل render بعد تأخير بسيط عشان مش نعمل lag
+  if(covToday.active){
+    setTimeout(()=>render(),50);
+  } else {
+    render();
+  }
+  showToast('✅ تم إضافة '+name);
+}
+
+function editColleagueClient(collegName, idx){
+  const c=(colleagues[collegName]||[])[idx];
+  if(!c)return;
+  editingColleague=collegName;
+  editingColleagueIdx=idx;
+  document.getElementById('cov-add-client-title').textContent='✏️ تعديل عميل — '+collegName;
+  document.getElementById('cov-cl-name').value=c.name||'';
+  document.getElementById('cov-cl-phone').value=c.phone||'';
+  document.getElementById('cov-cl-cat').value=c.cat||'B';
+  const sel=document.getElementById('cov-cl-time');
+  if(!sel.options.length){
+    const src=document.getElementById('f-time');
+    if(src)Array.from(src.options).forEach(o=>{const n=document.createElement('option');n.value=o.value;n.textContent=o.textContent;sel.appendChild(n);});
+  }
+  sel.value=c.time||'9:00 ص';
+  document.getElementById('cov-cl-type').value=c.type||'فون';
+  document.getElementById('cov-add-client-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('cov-cl-name').focus(),150);
+}
+
+let editingColleagueIdx=-1;
+
+function deleteColleagueClient(collegName, idx){
+  colleagues[collegName].splice(idx,1);
+  saveColleagues();
+  renderManageList(collegName);
+  render();
+  showToast('✅ تم الحذف');
+}
+
+// حالة عميل التغطية
+function getCovStatus(id){ return covToday.statuses[id]||'none'; }
+
+function openCovStatus(id){
+  const c=(colleagues[covToday.colleague]||[]).find(x=>x.id===id);
+  if(!c) return;
+  covStatusingId=id;
+  const st=getCovStatus(id);
+  document.getElementById('cov-status-name').textContent='🔄 '+c.name+' ('+covToday.colleague+')';
+  covPickedStatus=st==='none'?'bought':st;
+  ['bought','interested','rejected','noans'].forEach(s=>{
+    document.getElementById('csp-'+s).classList.toggle('active',s===covPickedStatus);
+  });
+  document.getElementById('cov-sale-wrap').style.display=covPickedStatus==='bought'?'block':'none';
+  document.getElementById('cov-sale-amt').value=covToday.amounts[id]||'';
+  document.getElementById('cov-status-note').value=covToday.notes[id]||'';
+  document.getElementById('cov-status-modal').style.display='flex';
+}
+
+function pickCovStatus(s){
+  covPickedStatus=s;
+  ['bought','interested','rejected','noans'].forEach(st=>document.getElementById('csp-'+st).classList.toggle('active',st===s));
+  document.getElementById('cov-sale-wrap').style.display=s==='bought'?'block':'none';
+}
+
+function saveCovStatus(){
+  covToday.statuses[covStatusingId]=covPickedStatus;
+  covToday.notes[covStatusingId]=document.getElementById('cov-status-note').value.trim();
+  if(covPickedStatus==='bought') covToday.amounts[covStatusingId]=parseFloat(document.getElementById('cov-sale-amt').value)||0;
+  else delete covToday.amounts[covStatusingId];
+  saveCovToday();
+  document.getElementById('cov-status-modal').style.display='none';
+  render();
+  updateCovBar();
+  showToast('✅ تم حفظ الحالة');
+}
+
+// تحليل التغطية المنفصل
+function renderCoverageAnalytics(){
+  const el=document.getElementById('coverage-content');
+  const colleagueNames=Object.keys(colleagues);
+  if(!colleagueNames.length){
+    el.innerHTML='<div class="empty"><div class="ico">🔄</div><p>مفيش زملاء مسجلين بعد<br><small style="font-size:11px">فعّل يوم تغطية وأضف عملاء الزملاء</small></p></div>';
+    return;
+  }
+  let h='';
+  colleagueNames.forEach(colName=>{
+    const clients=colleagues[colName]||[];
+    // جمع بيانات هذا الزميل من السجل
+    let totalBought=0,totalSales=0,totalDays=0;
+    historyData.forEach(day=>{
+      const covItems=(day.items||[]).filter(i=>i._colleague===colName);
+      if(covItems.length){
+        totalDays++;
+        covItems.forEach(i=>{ if(i.status==='bought'){totalBought++;totalSales+=i.saleAmount||0;} });
+      }
+    });
+    // حالة اليوم الحالى
+    let todayBought=0,todaySales=0;
+    if(covToday.active&&covToday.colleague===colName){
+      clients.forEach(c=>{ if(getCovStatus(c.id)==='bought'){todayBought++;todaySales+=covToday.amounts[c.id]||0;} });
+    }
+    h+=`<div class="card" style="border:1px solid rgba(245,158,11,.3)">
+      <div class="section-title">🔄 ${esc(colName)} <span style="font-size:11px;color:var(--muted);font-weight:400">${clients.length} عميل ثابت</span></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px">
+        <div class="stat"><div class="num" style="color:#fbbf24">${clients.length}</div><div class="lbl">عملاء</div></div>
+        <div class="stat"><div class="num" style="color:#34d399">${totalBought}</div><div class="lbl">طلبات (سجل)</div></div>
+        <div class="stat"><div class="num" style="color:#a78bfa">${totalSales>0?totalSales+' ج':'—'}</div><div class="lbl">مبيعات</div></div>
+      </div>`;
+    if(covToday.active&&covToday.colleague===colName){
+      h+=`<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:10px;margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:#fbbf24;margin-bottom:6px">📅 اليوم الحالى</div>
+        <div style="display:flex;gap:12px">
+          <span style="font-size:13px;color:#34d399;font-weight:700">🟢 ${todayBought} اشترى</span>
+          <span style="font-size:13px;color:#a78bfa;font-weight:700">${todaySales>0?'💰 '+todaySales+' ج':'—'}</span>
+          <span style="font-size:13px;color:var(--muted)">${clients.filter(c=>getCovStatus(c.id)==='none').length} لم يتم</span>
+        </div>
+      </div>`;
+    }
+    h+=`<div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:700">العملاء الثابتين:</div>`;
+    h+=clients.map(c=>{
+      const st=covToday.active&&covToday.colleague===colName?getCovStatus(c.id):'none';
+      const scfg=STATUS_CFG[st]||STATUS_CFG.none;
+      return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span class="badge-cat ${c.cat||'B'}">${c.cat||'B'}</span>
+        <span style="flex:1;font-size:12px">${esc(c.name)}</span>
+        <span style="font-size:11px;color:${scfg.dotCls==='bought'?'#34d399':scfg.dotCls==='interested'?'#fbbf24':scfg.dotCls==='rejected'?'#f87171':'var(--muted)'}">${scfg.icon} ${scfg.label}</span>
+        ${covToday.amounts[c.id]?`<span style="font-size:11px;color:#a78bfa">${covToday.amounts[c.id]} ج</span>`:''}
+      </div>`;
+    }).join('');
+    h+=`<button onclick="openManageColleague('${esc(colName)}')" class="cancel-btn" style="margin-top:10px;padding:7px">✏️ تعديل العملاء</button>`;
+    h+='</div>';
+  });
+  el.innerHTML=h;
+}
+
+// ══════════════ REAL-TIME SYNC ══════════════
+let realtimeUnsubs = [];
+function startRealtimeSync(){
+  realtimeUnsubs.forEach(u=>u());
+  realtimeUnsubs=[];
+
+  // مراقبة today_data
+  const todayDocId=UID+'_'+dateStr();
+  const u1=fsdb.collection('today_data').doc(todayDocId).onSnapshot(snap=>{
+    if(!snap.exists||!snap.metadata.hasPendingWrites===false)return;
+    const d=snap.data();
+    if(!d)return;
+    todayData.status=d.status||{};
+    todayData.dayNotes=d.day_notes||{};
+    todayData.saleAmounts=d.sale_amounts||{};
+    todayData.shiftNote=d.shift_note||'';
+    render();updateDayNote();
+    showToast('🔄 تم التحديث من جهاز آخر');
+  });
+  realtimeUnsubs.push(u1);
+
+  // مراقبة customers
+  const u2=fsdb.collection('customers').where('user_id','==',UID).onSnapshot(snap=>{
+    if(snap.metadata.hasPendingWrites)return;
+    customers=snap.docs.map(d=>({id:d.id,...d.data()}));
+    render();
+  });
+  realtimeUnsubs.push(u2);
+}
+</script>
+</body>
+</html>
